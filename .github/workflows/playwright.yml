@@ -8,11 +8,18 @@ jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+
+    env:
+      PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
+      PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
+
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
       with:
-        node-version: lts/*
+        node-version: 20
     - name: Install dependencies
       run: npm install -g pnpm && pnpm install
     - name: Install Playwright Browsers
@@ -25,3 +32,5 @@ jobs:
         name: playwright-report
         path: playwright-report/
         retention-days: 30
+    - run: pnpm install --frozen-lockfile
+    - run: corepack enable
