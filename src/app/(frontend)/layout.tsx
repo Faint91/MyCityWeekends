@@ -34,11 +34,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               preview: isEnabled,
             }}
           />
-
-          <Header />
-          {children}
-          <Footer />
-          <BottomNav />
+          <div className="min-h-screen pb-[calc(4rem+env(safe-area-inset-bottom))]">
+            <Header />
+            {children}
+            <Footer />
+            <BottomNav />
+          </div>
         </Providers>
       </body>
     </html>
