@@ -1,0 +1,24 @@
+import { test, expect } from '@playwright/test'
+
+test.describe('Bottom nav (mobile)', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+
+  test('nav is visible, no horizontal scroll, and it navigates', async ({ page }) => {
+    await page.goto('/')
+
+    const nav = page.getByRole('navigation', { name: 'Primary' })
+    await expect(nav).toBeVisible()
+
+    const hasHorizontalScroll = await page.evaluate(() => {
+      const doc = document.documentElement
+      return doc.scrollWidth > doc.clientWidth
+    })
+    expect(hasHorizontalScroll).toBe(false)
+
+    await nav.getByRole('link', { name: /free/i }).click()
+    await expect(page.getByRole('heading', { name: /free this weekend/i })).toBeVisible()
+
+    await nav.getByRole('link', { name: /under \$15/i }).click()
+    await expect(page.getByRole('heading', { name: /under \$15/i })).toBeVisible()
+  })
+})

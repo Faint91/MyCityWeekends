@@ -12,6 +12,7 @@ import { Providers } from '@/providers'
 import { InitTheme } from '@/providers/Theme/InitTheme'
 import { mergeOpenGraph } from '@/utilities/mergeOpenGraph'
 import { draftMode } from 'next/headers'
+import { BottomNav } from '@/components/BottomNav'
 
 import './globals.css'
 import { getServerSideURL } from '@/utilities/getURL'
@@ -37,6 +38,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <Header />
           {children}
           <Footer />
+          <BottomNav />
         </Providers>
       </body>
     </html>
