@@ -72,6 +72,10 @@ export interface Config {
     media: Media;
     categories: Category;
     users: User;
+    venues: Venue;
+    events: Event;
+    'weekend-drops': WeekendDrop;
+    'weekend-drop-items': WeekendDropItem;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -94,6 +98,10 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    venues: VenuesSelect<false> | VenuesSelect<true>;
+    events: EventsSelect<false> | EventsSelect<true>;
+    'weekend-drops': WeekendDropsSelect<false> | WeekendDropsSelect<true>;
+    'weekend-drop-items': WeekendDropItemsSelect<false> | WeekendDropItemsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -784,6 +792,86 @@ export interface Form {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "venues".
+ */
+export interface Venue {
+  id: number;
+  name: string;
+  neighborhood?: string | null;
+  address?: string | null;
+  website?: string | null;
+  googleMapsUrl?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "events".
+ */
+export interface Event {
+  id: number;
+  title: string;
+  slug?: string | null;
+  startAt: string;
+  endAt?: string | null;
+  isFree?: boolean | null;
+  priceMin?: number | null;
+  priceMax?: number | null;
+  currency?: ('CAD' | 'USD') | null;
+  venue?: (number | null) | Venue;
+  neighborhood?: string | null;
+  indoorOutdoor?: ('indoor' | 'outdoor' | 'both' | 'unknown') | null;
+  tags?:
+    | (
+        | 'music'
+        | 'comedy'
+        | 'sports'
+        | 'outdoors'
+        | 'community'
+        | 'art'
+        | 'food'
+        | 'market'
+        | 'education'
+        | 'nightlife'
+      )[]
+    | null;
+  sourceUrl?: string | null;
+  ticketUrl?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "weekend-drops".
+ */
+export interface WeekendDrop {
+  id: number;
+  title: string;
+  city?: string | null;
+  weekendStart: string;
+  weekendEnd: string;
+  slug?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "weekend-drop-items".
+ */
+export interface WeekendDropItem {
+  id: number;
+  weekendDrop: number | WeekendDrop;
+  event: number | Event;
+  section: 'top3' | 'free' | 'under15' | 'under30';
+  rank: number;
+  whyWorthIt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "redirects".
  */
 export interface Redirect {
@@ -991,6 +1079,22 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'users';
         value: number | User;
+      } | null)
+    | ({
+        relationTo: 'venues';
+        value: number | Venue;
+      } | null)
+    | ({
+        relationTo: 'events';
+        value: number | Event;
+      } | null)
+    | ({
+        relationTo: 'weekend-drops';
+        value: number | WeekendDrop;
+      } | null)
+    | ({
+        relationTo: 'weekend-drop-items';
+        value: number | WeekendDropItem;
       } | null)
     | ({
         relationTo: 'redirects';
@@ -1356,6 +1460,69 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "venues_select".
+ */
+export interface VenuesSelect<T extends boolean = true> {
+  name?: T;
+  neighborhood?: T;
+  address?: T;
+  website?: T;
+  googleMapsUrl?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "events_select".
+ */
+export interface EventsSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  startAt?: T;
+  endAt?: T;
+  isFree?: T;
+  priceMin?: T;
+  priceMax?: T;
+  currency?: T;
+  venue?: T;
+  neighborhood?: T;
+  indoorOutdoor?: T;
+  tags?: T;
+  sourceUrl?: T;
+  ticketUrl?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "weekend-drops_select".
+ */
+export interface WeekendDropsSelect<T extends boolean = true> {
+  title?: T;
+  city?: T;
+  weekendStart?: T;
+  weekendEnd?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "weekend-drop-items_select".
+ */
+export interface WeekendDropItemsSelect<T extends boolean = true> {
+  weekendDrop?: T;
+  event?: T;
+  section?: T;
+  rank?: T;
+  whyWorthIt?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
