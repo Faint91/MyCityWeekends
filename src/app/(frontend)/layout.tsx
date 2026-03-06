@@ -37,7 +37,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <div className="min-h-screen pb-[calc(4rem+env(safe-area-inset-bottom))]">
             <Header />
             {children}
-            <Footer />
+            <div className="mt-12">
+              <Footer />
+            </div>
             <BottomNav />
           </div>
         </Providers>
