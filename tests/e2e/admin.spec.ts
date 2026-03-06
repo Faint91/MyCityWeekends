@@ -11,12 +11,11 @@ test('Admin Panel › can log in and see dashboard', async ({ page }) => {
   const confirm = page.locator('input[name="confirm-password"]')
 
   if (await confirm.count()) {
-    // First-user setup screen (fresh DB)
+    // first-user setup screen
     await page.locator('input[name="email"]').fill(email)
     await page.locator('input[name="password"]').fill(password)
     await confirm.fill(password)
 
-    // Optional name fields (only fill if present)
     const first = page.locator('input[name="firstName"]')
     if (await first.count()) await first.fill('Admin')
 
@@ -25,7 +24,7 @@ test('Admin Panel › can log in and see dashboard', async ({ page }) => {
 
     await page.getByRole('button', { name: /create|register|save|continue/i }).click()
   } else {
-    // Normal login screen
+    // normal login screen
     await page.locator('input[name="email"]').fill(email)
     await page.locator('input[name="password"]').fill(password)
     await page.getByRole('button', { name: /log ?in/i }).click()
