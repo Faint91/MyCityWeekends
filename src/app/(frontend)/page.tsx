@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { EventPickCard } from '@/components/EventPickCard'
 import React from 'react'
 import {
   formatPrice,
@@ -69,49 +70,20 @@ export default async function WeekendPage() {
                 const when = formatWhen(event.startAt)
                 const venueName = getVenueName(event)
 
+                const detailsUrl = (event.ticketUrl ?? event.sourceUrl) as string | undefined
+
                 return (
-                  <article key={item.id} className="rounded-xl border p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0 space-y-1">
-                        <div className="text-sm text-black/60 dark:text-white/60">
-                          #{item.rank ?? ''}
-                        </div>
-
-                        <h3 className="truncate text-base font-semibold">
-                          {event.title ?? 'Untitled event'}
-                        </h3>
-
-                        <div className="text-sm text-black/70 dark:text-white/70">
-                          {when ? <span>{when}</span> : null}
-                          {when && (venueName || event.neighborhood) ? ' • ' : null}
-                          {venueName ? (
-                            <span>{venueName}</span>
-                          ) : event.neighborhood ? (
-                            <span>{event.neighborhood}</span>
-                          ) : null}
-                        </div>
-
-                        {item.whyWorthIt ? <p className="text-sm">{item.whyWorthIt}</p> : null}
-                      </div>
-
-                      <div className="shrink-0 rounded-full border px-3 py-1 text-sm font-medium">
-                        {price}
-                      </div>
-                    </div>
-
-                    {event.ticketUrl || event.sourceUrl ? (
-                      <div className="mt-3">
-                        <a
-                          className="text-sm underline"
-                          href={(event.ticketUrl ?? event.sourceUrl) as string}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          View details
-                        </a>
-                      </div>
-                    ) : null}
-                  </article>
+                  <EventPickCard
+                    key={item.id}
+                    rank={item.rank ?? null}
+                    title={event.title ?? 'Untitled event'}
+                    when={when}
+                    where={venueName ?? event.neighborhood ?? null}
+                    price={price}
+                    whyWorthIt={item.whyWorthIt ?? null}
+                    detailsUrl={detailsUrl ?? null}
+                    internalHref={event.slug ? `/event/${event.slug}` : null}
+                  />
                 )
               })}
             </div>

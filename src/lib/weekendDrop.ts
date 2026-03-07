@@ -1,4 +1,5 @@
 import { getPayloadClient } from './payload'
+export type WeekendSection = 'top3' | 'free' | 'under15' | 'under30'
 
 type WeekendDrop = {
   id: string
@@ -28,6 +29,7 @@ type EventDoc = {
   sourceUrl?: string
   neighborhood?: string
   venue?: string | Venue | null
+  slug?: string
 }
 
 type WeekendDropItemDoc = {
@@ -53,16 +55,29 @@ export async function getLatestPublishedWeekendDrop() {
 }
 
 export async function getWeekendDropTop3Items(weekendDropId: string) {
+  return getWeekendDropItemsBySection(weekendDropId, 'top3', 3)
+}
+
+export async function getWeekendDropItemsBySection(
+  weekendDropId: string | undefined | null,
+  section: WeekendSection,
+  limit = 50,
+) {
+  if (!weekendDropId) return [] // <— add this
+
   const payload = await getPayloadClient()
 
   const items = await payload.find({
     collection: 'weekend-drop-items',
     where: {
-      and: [{ weekendDrop: { equals: weekendDropId } }, { section: { equals: 'top3' } }],
+      weekendDrop: { equals: weekendDropId },
+      section: { equals: section },
     },
     sort: 'rank',
-    limit: 3,
-    depth: 3, // weekendDropItem -> event -> venue
+    limit,
+    overrideAccess: true,
+    depth: 5, // item -> event -> venue
+    draft: false,
   })
 
   return (items.docs as unknown as WeekendDropItemDoc[]) ?? []

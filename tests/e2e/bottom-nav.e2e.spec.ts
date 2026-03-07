@@ -34,10 +34,14 @@ test.describe('Bottom nav (mobile)', () => {
     expect(overlap).toBe(false)
 
     // navigation works
-    await nav.getByRole('link', { name: /free/i }).click()
-    await expect(page.getByRole('heading', { name: /free this weekend/i })).toBeVisible()
+    await nav.getByRole('link', { name: /^Free$/i }).click()
+    await expect(page).toHaveURL(/\/free\/?$/)
+    await expect(
+      page.getByRole('heading', { level: 1, name: /^Free this weekend$/i }),
+    ).toBeVisible()
 
     await nav.getByRole('link', { name: /under \$15/i }).click()
-    await expect(page.getByRole('heading', { name: /under \$15/i })).toBeVisible()
+    await expect(page).toHaveURL(/\/under-15\/?$/)
+    await expect(page.getByRole('heading', { level: 1, name: /^Under \$15$/i })).toBeVisible()
   })
 })

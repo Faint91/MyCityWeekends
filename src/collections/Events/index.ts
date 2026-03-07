@@ -1,5 +1,24 @@
 import type { CollectionConfig } from 'payload'
 
+const slugify = (input: string) =>
+  input
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '')
+    .slice(0, 70)
+
+const formatYMDVancouver = (isoDate: string) => {
+  const d = new Date(isoDate)
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Vancouver',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d) // YYYY-MM-DD
+}
+
 export const Events: CollectionConfig = {
   slug: 'events',
   admin: {
@@ -11,7 +30,7 @@ export const Events: CollectionConfig = {
     { name: 'title', type: 'text', required: true, index: true },
 
     // For future SEO-friendly event pages
-    { name: 'slug', type: 'text', index: true },
+    { name: 'slug', type: 'text', index: true, unique: true },
 
     { name: 'startAt', type: 'date', required: true },
     { name: 'endAt', type: 'date' },
@@ -80,4 +99,19 @@ export const Events: CollectionConfig = {
     { name: 'sourceUrl', type: 'text' },
     { name: 'ticketUrl', type: 'text' },
   ],
+  hooks: {
+    beforeValidate: [
+      ({ data }) => {
+        if (!data) return data
+        if (data.slug) return data // keep stable once set
+
+        if (data.title && data.startAt) {
+          const ymd = formatYMDVancouver(String(data.startAt))
+          data.slug = `${slugify(String(data.title))}-${ymd}`
+        }
+
+        return data
+      },
+    ],
+  },
 }
