@@ -3,11 +3,13 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import React from 'react'
+import { trackEvent } from '@/lib/ga'
 
 const items = [
   { href: '/', label: 'Weekend' },
   { href: '/free', label: 'Free' },
   { href: '/under-15', label: 'Under $15' },
+  { href: '/saved', label: 'Saved' },
 ]
 
 export function BottomNav() {
@@ -30,6 +32,7 @@ export function BottomNav() {
 
           return (
             <Link
+              onClick={() => trackEvent('bottom_nav_click', { label: item.label, href: item.href })}
               key={item.href}
               href={item.href}
               className={[

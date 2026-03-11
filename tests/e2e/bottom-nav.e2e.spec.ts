@@ -40,6 +40,10 @@ test.describe('Bottom nav (mobile)', () => {
       page.getByRole('heading', { level: 1, name: /^Free this weekend$/i }),
     ).toBeVisible()
 
+    await nav.getByRole('link', { name: /^Saved$/i }).click()
+    await expect(page).toHaveURL(/\/saved\/?$/)
+    await expect(page.getByRole('heading', { level: 1, name: /^Saved$/ })).toBeVisible()
+
     await nav.getByRole('link', { name: /under \$15/i }).click()
     await expect(page).toHaveURL(/\/under-15\/?$/)
     await expect(page.getByRole('heading', { level: 1, name: /^Under \$15$/i })).toBeVisible()

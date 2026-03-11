@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { getPayloadClient } from '@/lib/payload'
 import { formatPrice, formatWhen, getVenueName } from '@/lib/weekendDrop'
 import { ShareButton } from '@/components/ShareButton'
+import { SaveToggleButton } from '@/components/SaveToggleButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -77,6 +78,7 @@ export default async function Page({ params }: Props) {
 
         <div className="flex flex-wrap gap-3">
           <ShareButton />
+          {event.slug ? <SaveToggleButton slug={event.slug} /> : null}
           {officialUrl ? (
             <a
               className="rounded-full border px-4 py-2 text-sm font-medium underline"

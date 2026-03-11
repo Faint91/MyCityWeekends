@@ -20,7 +20,7 @@ describe('EventPickCard', () => {
     expect(screen.getByText('#1')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Free Comedy Night' })).toBeInTheDocument()
     expect(screen.getByText('Free')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /view details/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /official link/i })).toHaveAttribute(
       'href',
       'https://example.com',
     )

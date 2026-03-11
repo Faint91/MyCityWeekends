@@ -54,29 +54,34 @@ export async function getLatestPublishedWeekendDrop() {
   return (drops.docs?.[0] as unknown as WeekendDrop) ?? null
 }
 
-export async function getWeekendDropTop3Items(weekendDropId: string) {
+export async function getWeekendDropTop3Items(weekendDropId: string | number) {
   return getWeekendDropItemsBySection(weekendDropId, 'top3', 3)
 }
 
 export async function getWeekendDropItemsBySection(
-  weekendDropId: string | undefined | null,
+  weekendDrop: string | number | { id?: string | number } | undefined | null,
   section: WeekendSection,
   limit = 50,
 ) {
-  if (!weekendDropId) return [] // <— add this
+  const weekendDropId =
+    typeof weekendDrop === 'string' || typeof weekendDrop === 'number'
+      ? weekendDrop
+      : weekendDrop?.id
+
+  if (weekendDropId === undefined || weekendDropId === null) return []
 
   const payload = await getPayloadClient()
 
   const items = await payload.find({
     collection: 'weekend-drop-items',
     where: {
-      weekendDrop: { equals: weekendDropId },
+      weekendDrop: { equals: weekendDropId as any },
       section: { equals: section },
     },
     sort: 'rank',
     limit,
     overrideAccess: true,
-    depth: 5, // item -> event -> venue
+    depth: 5,
     draft: false,
   })
 

@@ -77,6 +77,7 @@ export default async function Under15Page() {
                   whyWorthIt={item.whyWorthIt ?? null}
                   detailsUrl={detailsUrl ?? null}
                   internalHref={event.slug ? `/event/${event.slug}` : null}
+                  saveSlug={event.slug ?? null}
                 />
               )
             })}

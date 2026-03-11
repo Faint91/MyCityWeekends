@@ -4,8 +4,8 @@ import { defineConfig, devices } from '@playwright/test'
  * Read environment variables from file.
  * https://github.com/motdotla/dotenv
  */
-import dotenv from 'dotenv';
-dotenv.config({ path: '.env.e2e' });
+import dotenv from 'dotenv'
+dotenv.config({ path: '.env.e2e' })
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -29,7 +29,7 @@ export default defineConfig({
   },
 
   webServer: {
-    command: 'pnpm dev',
+    command: 'pnpm clean:next && pnpm dev',
     url: 'http://127.0.0.1:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
@@ -40,5 +40,5 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'], channel: 'chromium' },
     },
-  ]
+  ],
 })

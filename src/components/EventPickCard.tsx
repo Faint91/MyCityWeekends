@@ -1,5 +1,9 @@
+'use client'
+
 import React from 'react'
 import Link from 'next/link'
+import { trackEvent } from '@/lib/ga'
+import { SaveToggleButton } from '@/components/SaveToggleButton'
 
 type Props = {
   rank?: number | null
@@ -10,6 +14,7 @@ type Props = {
   whyWorthIt?: string | null
   detailsUrl?: string | null
   internalHref?: string | null
+  saveSlug?: string | null
 }
 
 export function EventPickCard({
@@ -21,6 +26,7 @@ export function EventPickCard({
   whyWorthIt,
   detailsUrl,
   internalHref,
+  saveSlug,
 }: Props) {
   return (
     <article className="rounded-xl border p-4">
@@ -54,13 +60,30 @@ export function EventPickCard({
         <div className="shrink-0 rounded-full border px-3 py-1 text-sm font-medium">{price}</div>
       </div>
 
-      {detailsUrl ? (
-        <div className="mt-3">
-          <a className="text-sm underline" href={detailsUrl} target="_blank" rel="noreferrer">
-            View details
+      <div className="mt-3 flex flex-wrap gap-3">
+        {saveSlug ? <SaveToggleButton slug={saveSlug} /> : null}
+        {internalHref ? (
+          <Link
+            href={internalHref}
+            className="rounded-full border px-4 py-2 text-sm font-medium"
+            onClick={() => trackEvent('open_event_page', { href: internalHref })}
+          >
+            Open event page
+          </Link>
+        ) : null}
+
+        {detailsUrl ? (
+          <a
+            className="rounded-full border px-4 py-2 text-sm font-medium underline"
+            href={detailsUrl}
+            target="_blank"
+            rel="noreferrer"
+            onClick={() => trackEvent('official_link_click', { href: detailsUrl })}
+          >
+            Official link
           </a>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </article>
   )
 }
