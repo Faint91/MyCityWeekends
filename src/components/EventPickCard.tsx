@@ -17,6 +17,12 @@ type Props = {
   saveSlug?: string | null
 }
 
+function normalizeExternalUrl(url?: string | null) {
+  if (!url) return null
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  return `https://${url}`
+}
+
 export function EventPickCard({
   rank,
   title,
@@ -28,6 +34,7 @@ export function EventPickCard({
   internalHref,
   saveSlug,
 }: Props) {
+  const safeDetailsUrl = normalizeExternalUrl(detailsUrl)
   return (
     <article className="rounded-xl border p-4">
       <div className="flex items-start justify-between gap-4">
@@ -72,13 +79,13 @@ export function EventPickCard({
           </Link>
         ) : null}
 
-        {detailsUrl ? (
+        {safeDetailsUrl ? (
           <a
             className="rounded-full border px-4 py-2 text-sm font-medium underline"
-            href={detailsUrl}
+            href={safeDetailsUrl}
             target="_blank"
             rel="noreferrer"
-            onClick={() => trackEvent('official_link_click', { href: detailsUrl })}
+            onClick={() => trackEvent('official_link_click', { href: safeDetailsUrl })}
           >
             Official link
           </a>
