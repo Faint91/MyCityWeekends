@@ -1,44 +1,49 @@
 import { getPayloadClient } from './payload'
 export type WeekendSection = 'top3' | 'free' | 'under15' | 'under30'
+import type { Media } from '@/payload-types'
 
 type WeekendDrop = {
-  id: string
-  title?: string
-  city?: string
-  weekendStart?: string
-  weekendEnd?: string
+  id: string | number
+  title?: string | null
+  city?: string | null
+  weekendStart?: string | null
+  weekendEnd?: string | null
 }
 
 type Venue = {
-  id: string
-  name?: string
-  neighborhood?: string
-  address?: string
+  id: string | number
+  name?: string | null
+  neighborhood?: string | null
+  address?: string | null
 }
 
 type EventDoc = {
-  id: string
-  title?: string
-  startAt?: string
-  endAt?: string
-  isFree?: boolean
+  id: string | number
+  title?: string | null
+  startAt?: string | null
+  endAt?: string | null
+  isFree?: boolean | null
   priceMin?: number | null
   priceMax?: number | null
-  currency?: 'CAD' | 'USD'
-  ticketUrl?: string
-  sourceUrl?: string
-  neighborhood?: string
-  venue?: string | Venue | null
-  slug?: string
+  currency?: 'CAD' | 'USD' | null
+  ticketUrl?: string | null
+  sourceUrl?: string | null
+  neighborhood?: string | null
+  venue?: string | number | Venue | null
+  slug?: string | null
+  image?: number | Media | null
 }
 
 type WeekendDropItemDoc = {
-  id: string
-  rank?: number
-  section?: string
-  whyWorthIt?: string
-  event?: string | EventDoc | null
+  id: string | number
+  rank?: number | null
+  section?: string | null
+  whyWorthIt?: string | null
+  event?: string | number | EventDoc | null
 }
+
+type PriceableEvent = Pick<EventDoc, 'isFree' | 'priceMin' | 'priceMax' | 'currency'>
+type VenueLikeEvent = Pick<EventDoc, 'venue'>
 
 export async function getLatestPublishedWeekendDrop() {
   const payload = await getPayloadClient()
@@ -88,7 +93,7 @@ export async function getWeekendDropItemsBySection(
   return (items.docs as unknown as WeekendDropItemDoc[]) ?? []
 }
 
-export function formatPrice(event: EventDoc): string {
+export function formatPrice(event: PriceableEvent): string {
   if (event.isFree) return 'Free'
 
   const min = event.priceMin ?? null
@@ -112,7 +117,7 @@ export function formatPrice(event: EventDoc): string {
   return 'Cheap'
 }
 
-export function formatWhen(startAt?: string): string | null {
+export function formatWhen(startAt?: string | null): string | null {
   if (!startAt) return null
   const d = new Date(startAt)
 
@@ -126,8 +131,7 @@ export function formatWhen(startAt?: string): string | null {
   }).format(d)
 }
 
-export function getVenueName(event: EventDoc): string | null {
-  if (!event.venue) return null
-  if (typeof event.venue === 'string') return null
+export function getVenueName(event: VenueLikeEvent): string | null {
+  if (!event.venue || typeof event.venue !== 'object') return null
   return event.venue.name ?? null
 }

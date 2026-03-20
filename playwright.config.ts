@@ -29,10 +29,10 @@ export default defineConfig({
   },
 
   webServer: {
-    command: 'pnpm clean:next && pnpm dev',
+    command: 'pnpm clean:next && pnpm build && pnpm start',
     url: 'http://127.0.0.1:3000',
     reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
+    timeout: 180 * 1000,
   },
 
   projects: [

@@ -32,6 +32,12 @@ export const Events: CollectionConfig = {
     // For future SEO-friendly event pages
     { name: 'slug', type: 'text', index: true, unique: true },
 
+    // Optional event image for the detail page and future SEO/share previews
+    {
+      name: 'image',
+      type: 'upload',
+      relationTo: 'media',
+    },
     { name: 'startAt', type: 'date', required: true },
     { name: 'endAt', type: 'date' },
 

@@ -1,7 +1,12 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import React from 'react'
+import type { Media } from '@/payload-types'
 import { EventPickCard } from '../EventPickCard'
+
+vi.mock('next/image', () => ({
+  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img {...props} />,
+}))
 
 describe('EventPickCard', () => {
   it('renders title, price, and details link', () => {
@@ -24,5 +29,24 @@ describe('EventPickCard', () => {
       'href',
       'https://example.com',
     )
+  })
+
+  it('renders a thumbnail when an image is provided', () => {
+    const image: Media = {
+      id: 1,
+      alt: 'Comedy poster',
+      updatedAt: '2026-03-19T00:00:00.000Z',
+      createdAt: '2026-03-19T00:00:00.000Z',
+      url: '/media/comedy-poster.jpg',
+      filename: 'comedy-poster.jpg',
+      mimeType: 'image/jpeg',
+      filesize: 12345,
+      width: 1200,
+      height: 800,
+    }
+
+    render(<EventPickCard title="Free Comedy Night" price="Free" image={image} />)
+
+    expect(screen.getByAltText('Comedy poster')).toBeInTheDocument()
   })
 })

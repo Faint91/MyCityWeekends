@@ -5,20 +5,22 @@ import Link from 'next/link'
 import { getSavedSlugs } from '@/lib/savedEvents'
 import { EventPickCard } from '@/components/EventPickCard'
 import { trackEvent } from '@/lib/ga'
+import type { Media } from '@/payload-types'
 
 type EventDoc = {
-  id: string
-  title?: string
-  slug?: string
-  startAt?: string
-  isFree?: boolean
+  id: string | number
+  title?: string | null
+  slug?: string | null
+  startAt?: string | null
+  isFree?: boolean | null
   priceMin?: number | null
   priceMax?: number | null
-  currency?: string
-  ticketUrl?: string
-  sourceUrl?: string
-  neighborhood?: string
-  venue?: { name?: string } | string | null
+  currency?: string | null
+  ticketUrl?: string | null
+  sourceUrl?: string | null
+  neighborhood?: string | null
+  venue?: { name?: string | null } | string | number | null
+  image?: number | Media | null
 }
 
 function formatPrice(e: EventDoc): string {
@@ -40,7 +42,7 @@ function formatPrice(e: EventDoc): string {
   return 'Cheap'
 }
 
-function formatWhen(startAt?: string): string | null {
+function formatWhen(startAt?: string | null): string | null {
   if (!startAt) return null
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Vancouver',
@@ -128,6 +130,7 @@ export default function SavedPageClient() {
             detailsUrl={detailsUrl ?? null}
             // allow saving/un-saving from this page too
             saveSlug={event.slug ?? null}
+            image={event.image && typeof event.image === 'object' ? event.image : null}
           />
         )
       })}

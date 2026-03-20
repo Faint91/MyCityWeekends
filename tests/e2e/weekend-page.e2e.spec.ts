@@ -6,8 +6,10 @@ test('Weekend page works with or without data', async ({ page }) => {
   const eventLinks = page.locator('a[href^="/event/"]')
 
   if ((await eventLinks.count()) > 0) {
-    await eventLinks.first().click()
-    await expect(page).toHaveURL(/\/event\//)
+    await Promise.all([
+      page.waitForURL(/\/event\//, { timeout: 15000 }),
+      eventLinks.first().click(),
+    ])
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
     return
   }

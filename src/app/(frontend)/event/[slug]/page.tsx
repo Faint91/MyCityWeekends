@@ -1,10 +1,12 @@
 import React from 'react'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import type { Event, Media as MediaDoc } from '@/payload-types'
 import { getPayloadClient } from '@/lib/payload'
 import { formatPrice, formatWhen, getVenueName } from '@/lib/weekendDrop'
 import { ShareButton } from '@/components/ShareButton'
 import { SaveToggleButton } from '@/components/SaveToggleButton'
+import { Media } from '@/components/Media'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,7 +14,12 @@ type Props = {
   params: Promise<{ slug: string }>
 }
 
-export async function generateMetadata({ params }: Props) {
+function getEventImage(event: Event): MediaDoc | null {
+  if (!event.image || typeof event.image !== 'object') return null
+  return event.image
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
   const payload = await getPayloadClient()
 
@@ -27,7 +34,7 @@ export async function generateMetadata({ params }: Props) {
     draft: false,
   })
 
-  const event = res.docs?.[0] as any
+  const event = res.docs?.[0] as Event | undefined
   if (!event) {
     return { title: 'Event not found — MyCityWeekends' }
   }
@@ -53,7 +60,7 @@ export default async function Page({ params }: Props) {
     draft: false,
   })
 
-  const event = res.docs?.[0] as any
+  const event = res.docs?.[0] as Event | undefined
   if (!event) return notFound()
 
   const price = formatPrice(event)
@@ -61,6 +68,7 @@ export default async function Page({ params }: Props) {
   const venueName = getVenueName(event)
   const where = venueName ?? event.neighborhood ?? null
   const officialUrl = (event.ticketUrl ?? event.sourceUrl) as string | undefined
+  const eventImage = getEventImage(event)
 
   return (
     <div className="pt-24">
@@ -75,6 +83,18 @@ export default async function Page({ params }: Props) {
             ) : null}
           </div>
         </header>
+
+        {eventImage ? (
+          <div className="overflow-hidden rounded-2xl border">
+            <Media
+              className="w-full"
+              priority
+              resource={eventImage}
+              imgClassName="h-auto w-full"
+              size="(max-width: 768px) 100vw, 900px"
+            />
+          </div>
+        ) : null}
 
         <div className="flex flex-wrap gap-3">
           <ShareButton />

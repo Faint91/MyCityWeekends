@@ -812,6 +812,7 @@ export interface Event {
   id: number;
   title: string;
   slug?: string | null;
+  image?: (number | null) | Media;
   startAt: string;
   endAt?: string | null;
   isFree?: boolean | null;
@@ -1481,6 +1482,7 @@ export interface VenuesSelect<T extends boolean = true> {
 export interface EventsSelect<T extends boolean = true> {
   title?: T;
   slug?: T;
+  image?: T;
   startAt?: T;
   endAt?: T;
   isFree?: T;
