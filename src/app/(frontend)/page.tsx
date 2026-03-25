@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { mergeOpenGraph } from '@/utilities/mergeOpenGraph'
 import { EventPickCard } from '@/components/EventPickCard'
 import React from 'react'
 import {
@@ -10,8 +11,24 @@ import {
 } from '@/lib/weekendDrop'
 
 export const metadata: Metadata = {
-  title: 'MyCityWeekends — Vancouver weekend (budget picks)',
-  description: 'Three great free/cheap things to do in Vancouver this weekend. Updated weekly.',
+  title: 'Cheap & Free Things to Do in Vancouver This Weekend | MyCityWeekends',
+  description:
+    'Discover curated cheap and free things to do in Vancouver this weekend. Fast picks for students and budget-conscious locals.',
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: mergeOpenGraph({
+    title: 'Cheap & Free Things to Do in Vancouver This Weekend | MyCityWeekends',
+    description:
+      'Discover curated cheap and free things to do in Vancouver this weekend. Fast picks for students and budget-conscious locals.',
+    url: '/',
+  }),
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Cheap & Free Things to Do in Vancouver This Weekend | MyCityWeekends',
+    description:
+      'Discover curated cheap and free things to do in Vancouver this weekend. Fast picks for students and budget-conscious locals.',
+  },
 }
 
 // Keep it simple + reliable while we iterate

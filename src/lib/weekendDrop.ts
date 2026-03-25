@@ -80,7 +80,7 @@ export async function getWeekendDropItemsBySection(
   const items = await payload.find({
     collection: 'weekend-drop-items',
     where: {
-      weekendDrop: { equals: weekendDropId as any },
+      weekendDrop: { equals: weekendDropId as string | number },
       section: { equals: section },
     },
     sort: 'rank',

@@ -2,16 +2,17 @@
 
 import Script from 'next/script'
 import React from 'react'
+import { getGAId } from '@/lib/gaConfig'
 
 declare global {
   interface Window {
-    dataLayer?: unknown[]
-    gtag?: (...args: any[]) => void
+    dataLayer: unknown[]
+    gtag?: (...args: unknown[]) => void
   }
 }
 
 export function GA4() {
-  const id = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
+  const id = getGAId()
   if (!id) return null
 
   return (
@@ -23,10 +24,10 @@ export function GA4() {
       <Script id="ga4-init" strategy="afterInteractive">
         {`
           window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
+          function gtag(){window.dataLayer.push(arguments);}
           window.gtag = gtag;
           gtag('js', new Date());
-          gtag('config', '${id}', { send_page_view: false });
+          gtag('config', '${id}', { send_page_view: false, debug_mode: true });
         `}
       </Script>
     </>

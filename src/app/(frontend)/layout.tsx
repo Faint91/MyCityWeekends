@@ -54,9 +54,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
 export const metadata: Metadata = {
   metadataBase: new URL(getServerSideURL()),
-  openGraph: mergeOpenGraph(),
+  title: {
+    default: 'MyCityWeekends',
+    template: '%s | MyCityWeekends',
+  },
+  description:
+    'Curated cheap and free things to do in Vancouver this weekend for fast, budget-friendly plans.',
+  openGraph: mergeOpenGraph({
+    title: 'MyCityWeekends',
+    description:
+      'Curated cheap and free things to do in Vancouver this weekend for fast, budget-friendly plans.',
+    url: '/',
+  }),
   twitter: {
     card: 'summary_large_image',
-    creator: '@payloadcms',
   },
 }

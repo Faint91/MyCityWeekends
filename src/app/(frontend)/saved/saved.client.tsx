@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { getSavedSlugs } from '@/lib/savedEvents'
+import { getSavedSlugs, subscribeToSavedSlugs } from '@/lib/savedEvents'
 import { EventPickCard } from '@/components/EventPickCard'
 import { trackEvent } from '@/lib/ga'
 import type { Media } from '@/payload-types'
@@ -15,7 +15,7 @@ type EventDoc = {
   isFree?: boolean | null
   priceMin?: number | null
   priceMax?: number | null
-  currency?: string | null
+  currency?: 'CAD' | null
   ticketUrl?: string | null
   sourceUrl?: string | null
   neighborhood?: string | null
@@ -23,11 +23,15 @@ type EventDoc = {
   image?: number | Media | null
 }
 
+type BySlugsResponse = {
+  docs?: EventDoc[]
+}
+
 function formatPrice(e: EventDoc): string {
   if (e.isFree) return 'Free'
   const min = e.priceMin ?? null
   const max = e.priceMax ?? null
-  const cur = (e.currency as any) ?? 'CAD'
+  const cur = e.currency ?? 'CAD'
   const fmt = (n: number) =>
     new Intl.NumberFormat('en-CA', {
       style: 'currency',
@@ -63,11 +67,9 @@ export default function SavedPageClient() {
     setSlugs(next)
     trackEvent('open_saved', { count: next.length })
 
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === 'mycityweekends:saved_slugs') setSlugs(getSavedSlugs())
-    }
-    window.addEventListener('storage', onStorage)
-    return () => window.removeEventListener('storage', onStorage)
+    return subscribeToSavedSlugs((nextSlugs) => {
+      setSlugs(nextSlugs)
+    })
   }, [])
 
   const slugsParam = useMemo(() => slugs.join(','), [slugs])
@@ -82,7 +84,7 @@ export default function SavedPageClient() {
       }
       setEvents(null)
       const res = await fetch(`/api/events/by-slugs?slugs=${encodeURIComponent(slugsParam)}`)
-      const json = await res.json()
+      const json = (await res.json()) as BySlugsResponse
       if (cancelled) return
       setEvents(Array.isArray(json?.docs) ? json.docs : [])
     }

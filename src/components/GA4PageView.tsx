@@ -1,10 +1,11 @@
 'use client'
 
 import { usePathname, useSearchParams } from 'next/navigation'
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
+import { getGAId } from '@/lib/gaConfig'
 
 export function GA4PageView() {
-  const id = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
+  const id = getGAId()
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
@@ -19,6 +20,7 @@ export function GA4PageView() {
       page_title: document.title,
       page_location: window.location.href,
       page_path,
+      debug_mode: true,
     })
   }, [id, pathname, searchParams])
 

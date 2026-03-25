@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { isSaved, toggleSaved } from '@/lib/savedEvents'
+import { isSaved, subscribeToSavedSlugs, toggleSaved } from '@/lib/savedEvents'
 import { trackEvent } from '@/lib/ga'
 
 export function SaveToggleButton({ slug }: { slug: string }) {
@@ -10,11 +10,9 @@ export function SaveToggleButton({ slug }: { slug: string }) {
   useEffect(() => {
     setSaved(isSaved(slug))
 
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === 'mycityweekends:saved_slugs') setSaved(isSaved(slug))
-    }
-    window.addEventListener('storage', onStorage)
-    return () => window.removeEventListener('storage', onStorage)
+    return subscribeToSavedSlugs((slugs) => {
+      setSaved(slugs.includes(slug))
+    })
   }, [slug])
 
   const onClick = () => {

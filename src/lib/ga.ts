@@ -1,7 +1,14 @@
-'use client'
+export type GAEventParams = Record<string, string | number | boolean | null | undefined>
 
-export function trackEvent(name: string, params?: Record<string, any>) {
+export function trackEvent(name: string, params?: GAEventParams) {
   if (typeof window === 'undefined') return
-  if (!window.gtag) return
-  window.gtag('event', name, params ?? {})
+
+  const gtag = (
+    window as Window & {
+      gtag?: (...args: unknown[]) => void
+    }
+  ).gtag
+
+  if (!gtag) return
+  gtag('event', name, params)
 }

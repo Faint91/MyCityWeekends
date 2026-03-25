@@ -1,6 +1,7 @@
 'use client'
 
 const KEY = 'mycityweekends:saved_slugs'
+const EVENT = 'mycityweekends:saved-changed'
 
 function read(): string[] {
   try {
@@ -12,8 +13,17 @@ function read(): string[] {
   }
 }
 
+function emit(slugs: string[]) {
+  window.dispatchEvent(
+    new CustomEvent<string[]>(EVENT, {
+      detail: slugs,
+    }),
+  )
+}
+
 function write(slugs: string[]) {
   localStorage.setItem(KEY, JSON.stringify(slugs))
+  emit(slugs)
 }
 
 export function getSavedSlugs(): string[] {
@@ -43,4 +53,23 @@ export function toggleSaved(slug: string): boolean {
   }
   write([slug, ...current])
   return true
+}
+
+export function subscribeToSavedSlugs(onChange: (slugs: string[]) => void) {
+  const handleStorage = (e: StorageEvent) => {
+    if (e.key === KEY) onChange(read())
+  }
+
+  const handleCustom = (e: Event) => {
+    const custom = e as CustomEvent<string[]>
+    onChange(Array.isArray(custom.detail) ? custom.detail : read())
+  }
+
+  window.addEventListener('storage', handleStorage)
+  window.addEventListener(EVENT, handleCustom)
+
+  return () => {
+    window.removeEventListener('storage', handleStorage)
+    window.removeEventListener(EVENT, handleCustom)
+  }
 }
