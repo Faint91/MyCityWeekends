@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-
+import { Suspense } from 'react'
 import { cn } from '@/utilities/ui'
 import { GeistMono } from 'geist/font/mono'
 import { GeistSans } from 'geist/font/sans'
@@ -31,7 +31,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body>
         <GA4 />
-        <GA4PageView />
+        <Suspense fallback={null}>
+          <GA4PageView />
+        </Suspense>
         <Providers>
           <AdminBar
             adminBarProps={{
