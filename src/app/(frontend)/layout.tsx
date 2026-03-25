@@ -53,7 +53,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 }
 
 export const metadata: Metadata = {
-  metadataBase: new URL(getServerSideURL()),
+  metadataBase: (() => {
+    try {
+      return new URL(getServerSideURL())
+    } catch {
+      return new URL('https://my-city-weekends.vercel.app')
+    }
+  })(),
   title: {
     default: 'MyCityWeekends',
     template: '%s | MyCityWeekends',
