@@ -3,6 +3,7 @@ import sharp from 'sharp'
 import path from 'path'
 import { buildConfig, PayloadRequest } from 'payload'
 import { fileURLToPath } from 'url'
+import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 
 import { Categories } from './collections/Categories'
 import { Media } from './collections/Media'
@@ -80,7 +81,18 @@ export default buildConfig({
   ],
   cors: [getServerSideURL()].filter(Boolean),
   globals: [Header, Footer],
-  plugins,
+  plugins: [
+    vercelBlobStorage({
+      enabled: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
+      collections: {
+        media: true,
+      },
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+      // Optional later if you ever hit Vercel upload limits:
+      // clientUploads: true,
+    }),
+    ...plugins,
+  ],
   secret: process.env.PAYLOAD_SECRET,
   sharp,
   typescript: {
