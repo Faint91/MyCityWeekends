@@ -20,7 +20,6 @@ export function GA4PageView() {
       page_title: document.title,
       page_location: window.location.href,
       page_path,
-      debug_mode: true,
     })
   }, [id, pathname, searchParams])
 

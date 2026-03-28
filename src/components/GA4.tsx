@@ -27,7 +27,7 @@ export function GA4() {
           function gtag(){window.dataLayer.push(arguments);}
           window.gtag = gtag;
           gtag('js', new Date());
-          gtag('config', '${id}', { send_page_view: false, debug_mode: true });
+          gtag('config', '${id}', { send_page_view: false });
         `}
       </Script>
     </>
