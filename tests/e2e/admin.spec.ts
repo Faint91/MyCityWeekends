@@ -47,7 +47,7 @@ test('Admin Panel › can log in and see dashboard', async ({ page }) => {
 
   await expect(page).toHaveURL(/\/admin\/?$/)
 
-  await expect(page.getByText(/venues|events|weekend drops|media/i)).toBeVisible({
+  await expect(page.getByRole('heading', { name: 'MyCityWeekends admin' })).toBeVisible({
     timeout: 60_000,
   })
 })
