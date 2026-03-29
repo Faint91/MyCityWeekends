@@ -14,28 +14,34 @@ interface HeaderClientProps {
 }
 
 export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
-  /* Storing the value in a useState to avoid hydration errors */
   const [theme, setTheme] = useState<string | null>(null)
   const { headerTheme, setHeaderTheme } = useHeaderTheme()
   const pathname = usePathname()
 
   useEffect(() => {
     setHeaderTheme(null)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname])
+  }, [pathname, setHeaderTheme])
 
   useEffect(() => {
     if (headerTheme && headerTheme !== theme) setTheme(headerTheme)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [headerTheme])
+  }, [headerTheme, theme])
 
   return (
-    <header className="container relative z-20   " {...(theme ? { 'data-theme': theme } : {})}>
-      <div className="py-8 flex justify-between">
-        <Link href="/">
-          <Logo loading="eager" priority="high" className="invert dark:invert-0" />
+    <header className="container relative z-20" {...(theme ? { 'data-theme': theme } : {})}>
+      <div className="flex flex-col gap-3 pt-5 pb-1 md:gap-4 md:pt-6 md:pb-2">
+        <Link href="/" className="block w-full max-w-[760px]">
+          <div className="w-full">
+            <Logo
+              loading="eager"
+              priority="high"
+              sizes="(min-width: 1280px) 760px, (min-width: 768px) 62vw, 92vw"
+            />
+          </div>
         </Link>
-        <HeaderNav data={data} />
+
+        <div className="flex justify-start md:justify-end">
+          <HeaderNav data={data} />
+        </div>
       </div>
     </header>
   )

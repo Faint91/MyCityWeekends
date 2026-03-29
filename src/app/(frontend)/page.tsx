@@ -40,7 +40,7 @@ export default async function WeekendPage() {
   // Empty state (important for CI/test DB and early prod)
   if (!drop) {
     return (
-      <div className="pt-24">
+      <div className="pt-6 md:pt-8">
         <div className="container space-y-6">
           <h1 className="text-2xl font-semibold">This weekend in Vancouver</h1>
           <p className="text-black/70 dark:text-white/70">No weekend drop published yet.</p>
@@ -52,7 +52,7 @@ export default async function WeekendPage() {
   const top3 = await getWeekendDropTop3Items(drop.id)
 
   return (
-    <div className="pt-24">
+    <div className="pt-6 md:pt-8">
       <div className="container space-y-8">
         <header className="space-y-2">
           <h1 className="text-2xl font-semibold">This weekend in Vancouver</h1>

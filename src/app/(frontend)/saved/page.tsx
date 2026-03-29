@@ -28,7 +28,7 @@ export const dynamic = 'force-dynamic'
 
 export default function Page() {
   return (
-    <div className="pt-24 pb-24">
+    <div className="pt-6 md:pt-8 pb-24">
       <div className="container space-y-6">
         <h1 className="text-2xl font-semibold">Saved</h1>
         <SavedPageClient />

@@ -296,9 +296,9 @@ export default async function Page({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      <div className="pt-24">
+      <div className="pt-6 md:pt-8 pb-24">
         <div className="container space-y-6">
-          <header className="space-y-2">
+          <header className="space-y-1">
             <h1 className="text-2xl font-semibold">{event.title ?? 'Untitled event'}</h1>
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full border px-3 py-1 text-sm font-medium">{price}</span>

@@ -38,7 +38,7 @@ export default async function Under15Page() {
 
   if (!drop) {
     return (
-      <div className="pt-24">
+      <div className="pt-6 md:pt-8">
         <div className="container space-y-6">
           <h1 className="text-2xl font-semibold">Under $15</h1>
           <p className="text-black/70 dark:text-white/70">No weekend drop published yet.</p>
@@ -50,9 +50,9 @@ export default async function Under15Page() {
   const items = await getWeekendDropItemsBySection(drop.id, 'under15', 50)
 
   return (
-    <div className="pt-24">
+    <div className="pt-6 md:pt-8">
       <div className="container space-y-8">
-        <header className="space-y-2">
+        <header className="space-y-1">
           <h1 className="text-2xl font-semibold">Under $15</h1>
           <p className="text-black/70 dark:text-white/70">Updated weekly.</p>
         </header>
