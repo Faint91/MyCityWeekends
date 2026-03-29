@@ -39,10 +39,10 @@ export const link: LinkType = ({ appearances, disableLabel = false, overrides = 
               layout: 'horizontal',
               width: '50%',
             },
-            defaultValue: 'reference',
+            defaultValue: 'custom',
             options: [
               {
-                label: 'Internal link',
+                label: 'Internal event link',
                 value: 'reference',
               },
               {
@@ -74,8 +74,8 @@ export const link: LinkType = ({ appearances, disableLabel = false, overrides = 
       admin: {
         condition: (_, siblingData) => siblingData?.type === 'reference',
       },
-      label: 'Document to link to',
-      relationTo: ['pages', 'posts'],
+      label: 'Event to link to',
+      relationTo: ['events'],
       required: true,
     },
     {
@@ -90,14 +90,6 @@ export const link: LinkType = ({ appearances, disableLabel = false, overrides = 
   ]
 
   if (!disableLabel) {
-    linkTypes.map((linkType) => ({
-      ...linkType,
-      admin: {
-        ...linkType.admin,
-        width: '50%',
-      },
-    }))
-
     linkResult.fields.push({
       type: 'row',
       fields: [
