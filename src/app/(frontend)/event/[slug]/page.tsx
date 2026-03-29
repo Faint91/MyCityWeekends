@@ -28,7 +28,29 @@ function getEventImageUrl(event: Event): string | null {
   return image.sizes?.square?.url ?? image.url ?? null
 }
 
+function getEventLongDescription(event: Event): string | null {
+  if (typeof event.description !== 'string') return null
+
+  const cleaned = event.description.trim()
+  return cleaned.length ? cleaned : null
+}
+
+function normalizeWhitespace(value: string): string {
+  return value.replace(/\s+/g, ' ').trim()
+}
+
+function truncateForMeta(value: string, max = 160): string {
+  if (value.length <= max) return value
+  return `${value.slice(0, max - 1).trimEnd()}…`
+}
+
 function buildEventDescription(event: Event): string {
+  const longDescription = getEventLongDescription(event)
+
+  if (longDescription) {
+    return truncateForMeta(normalizeWhitespace(longDescription))
+  }
+
   const when = formatWhen(event.startAt)
   const venueName = getVenueName(event)
   const where = venueName ?? event.neighborhood ?? null
@@ -163,7 +185,7 @@ function buildEventStructuredData(event: Event, slug: string): Record<string, un
     '@context': 'https://schema.org',
     '@type': 'Event',
     name: event.title ?? 'Event',
-    description: buildEventDescription(event),
+    description: getEventLongDescription(event) ?? buildEventDescription(event),
     startDate: event.startAt ?? undefined,
     endDate: event.endAt ?? undefined,
     url: pageUrl,
@@ -266,6 +288,7 @@ export default async function Page({ params }: Props) {
   const officialUrl = (event.ticketUrl ?? event.sourceUrl) as string | undefined
   const structuredData = buildEventStructuredData(event, slug)
   const eventImage = getEventImage(event)
+  const longDescription = getEventLongDescription(event)
 
   return (
     <>
@@ -314,6 +337,15 @@ export default async function Page({ params }: Props) {
               </a>
             ) : null}
           </div>
+
+          {longDescription ? (
+            <section className="space-y-2">
+              <h2 className="text-lg font-semibold">About this event</h2>
+              <p className="whitespace-pre-line text-sm leading-7 text-black/80 dark:text-white/80">
+                {longDescription}
+              </p>
+            </section>
+          ) : null}
 
           {Array.isArray(event.tags) && event.tags.length ? (
             <div className="flex flex-wrap gap-2">

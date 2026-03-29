@@ -38,6 +38,14 @@ export const Events: CollectionConfig = {
       type: 'upload',
       relationTo: 'media',
     },
+    {
+      name: 'description',
+      type: 'textarea',
+      admin: {
+        description:
+          'Longer event description shown on the event page and used for SEO when available.',
+      },
+    },
     { name: 'startAt', type: 'date', required: true },
     { name: 'endAt', type: 'date' },
 

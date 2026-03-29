@@ -813,6 +813,10 @@ export interface Event {
   title: string;
   slug?: string | null;
   image?: (number | null) | Media;
+  /**
+   * Longer event description shown on the event page and used for SEO when available.
+   */
+  description?: string | null;
   startAt: string;
   endAt?: string | null;
   isFree?: boolean | null;
@@ -1483,6 +1487,7 @@ export interface EventsSelect<T extends boolean = true> {
   title?: T;
   slug?: T;
   image?: T;
+  description?: T;
   startAt?: T;
   endAt?: T;
   isFree?: T;
