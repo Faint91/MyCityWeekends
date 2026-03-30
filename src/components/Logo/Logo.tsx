@@ -5,14 +5,14 @@ import React from 'react'
 interface Props {
   className?: string
   loading?: 'lazy' | 'eager'
-  priority?: 'auto' | 'high' | 'low'
+  priority?: boolean
   sizes?: string
 }
 
 export const Logo = ({
   className,
   loading = 'lazy',
-  priority = 'low',
+  priority = false,
   sizes = '(min-width: 768px) 520px, 90vw',
 }: Props) => {
   return (
@@ -22,7 +22,7 @@ export const Logo = ({
       width={1200}
       height={240}
       loading={loading}
-      fetchPriority={priority}
+      priority={priority}
       sizes={sizes}
       className={clsx('h-auto w-full', className)}
     />

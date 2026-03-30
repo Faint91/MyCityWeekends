@@ -33,7 +33,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
           <div className="w-full">
             <Logo
               loading="eager"
-              priority="high"
+              priority={true}
               sizes="(min-width: 1280px) 760px, (min-width: 768px) 62vw, 92vw"
             />
           </div>
