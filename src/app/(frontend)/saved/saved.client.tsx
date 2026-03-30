@@ -69,19 +69,24 @@ async function fetchEventsBySlugs(slugs: string[]): Promise<EventDoc[]> {
 }
 
 export default function SavedPageClient() {
-  const [slugs, setSlugs] = useState<string[]>([])
+  const [savedSlugs, setSavedSlugs] = useState<string[]>([])
+  const [visibleSlugs, setVisibleSlugs] = useState<string[]>([])
   const [events, setEvents] = useState<EventDoc[] | null>(null)
+  const [removingSlugs, setRemovingSlugs] = useState<string[]>([])
 
-  const previousSlugsRef = useRef<string[]>([])
+  const visibleSlugsRef = useRef<string[]>([])
   const requestIdRef = useRef(0)
+  const removeTimeoutRef = useRef<number | null>(null)
 
   useEffect(() => {
     let active = true
 
     async function loadInitial() {
       const initialSlugs = getSavedSlugs()
-      previousSlugsRef.current = initialSlugs
-      setSlugs(initialSlugs)
+
+      visibleSlugsRef.current = initialSlugs
+      setSavedSlugs(initialSlugs)
+      setVisibleSlugs(initialSlugs)
       trackEvent('open_saved', { count: initialSlugs.length })
 
       if (initialSlugs.length === 0) {
@@ -101,6 +106,9 @@ export default function SavedPageClient() {
 
     return () => {
       active = false
+      if (removeTimeoutRef.current) {
+        window.clearTimeout(removeTimeoutRef.current)
+      }
     }
   }, [])
 
@@ -108,24 +116,40 @@ export default function SavedPageClient() {
     let active = true
 
     const unsubscribe = subscribeToSavedSlugs(async (nextSlugs) => {
-      const previousSlugs = previousSlugsRef.current
-      previousSlugsRef.current = nextSlugs
+      const previousVisibleSlugs = visibleSlugsRef.current
+      const removedSlugs = previousVisibleSlugs.filter((slug) => !nextSlugs.includes(slug))
+      const addedSlugs = nextSlugs.filter((slug) => !previousVisibleSlugs.includes(slug))
 
-      setSlugs(nextSlugs)
+      setSavedSlugs(nextSlugs)
 
-      if (nextSlugs.length === 0) {
+      if (removedSlugs.length > 0) {
+        setRemovingSlugs((prev) => [...new Set([...prev, ...removedSlugs])])
+
+        if (removeTimeoutRef.current) {
+          window.clearTimeout(removeTimeoutRef.current)
+        }
+
+        removeTimeoutRef.current = window.setTimeout(() => {
+          if (!active) return
+
+          visibleSlugsRef.current = nextSlugs
+          setVisibleSlugs(nextSlugs)
+          setRemovingSlugs([])
+
+          setEvents((prev) => {
+            if (!prev) return prev
+            return prev.filter((event) => event.slug && nextSlugs.includes(event.slug))
+          })
+        }, 180)
+      } else {
+        visibleSlugsRef.current = nextSlugs
+        setVisibleSlugs(nextSlugs)
+      }
+
+      if (nextSlugs.length === 0 && removedSlugs.length === 0) {
         setEvents([])
         return
       }
-
-      // Instantly remove unsaved items from the current list
-      setEvents((prev) => {
-        if (!prev) return prev
-        return prev.filter((event) => event.slug && nextSlugs.includes(event.slug))
-      })
-
-      // Only fetch newly added slugs
-      const addedSlugs = nextSlugs.filter((slug) => !previousSlugs.includes(slug))
 
       if (addedSlugs.length === 0) {
         return
@@ -156,10 +180,13 @@ export default function SavedPageClient() {
     return () => {
       active = false
       unsubscribe()
+      if (removeTimeoutRef.current) {
+        window.clearTimeout(removeTimeoutRef.current)
+      }
     }
   }, [])
 
-  if (slugs.length === 0) {
+  if (visibleSlugs.length === 0) {
     return (
       <div className="space-y-3">
         <p className="text-black/70 dark:text-white/70">No saved events yet.</p>
@@ -175,26 +202,33 @@ export default function SavedPageClient() {
   }
 
   const bySlug = new Map(events.map((e) => [e.slug, e]))
-  const ordered = slugs.map((s) => bySlug.get(s)).filter(Boolean) as EventDoc[]
+  const ordered = visibleSlugs.map((s) => bySlug.get(s)).filter(Boolean) as EventDoc[]
 
   return (
     <div className="space-y-3">
       {ordered.map((event) => {
         const venueName = typeof event.venue === 'object' && event.venue ? event.venue.name : null
         const detailsUrl = (event.ticketUrl ?? event.sourceUrl) as string | undefined
+        const isRemoving = event.slug ? removingSlugs.includes(event.slug) : false
 
         return (
-          <EventPickCard
+          <div
             key={event.id}
-            internalHref={event.slug ? `/event/${event.slug}` : null}
-            title={event.title ?? 'Untitled event'}
-            when={formatWhen(event.startAt)}
-            where={venueName ?? event.neighborhood ?? null}
-            price={formatPrice(event)}
-            detailsUrl={detailsUrl ?? null}
-            saveSlug={event.slug ?? null}
-            image={event.image && typeof event.image === 'object' ? event.image : null}
-          />
+            className={`transition-all duration-200 ${
+              isRemoving ? 'opacity-0 scale-[0.985] -translate-y-1' : 'opacity-100 scale-100'
+            }`}
+          >
+            <EventPickCard
+              internalHref={event.slug ? `/event/${event.slug}` : null}
+              title={event.title ?? 'Untitled event'}
+              when={formatWhen(event.startAt)}
+              where={venueName ?? event.neighborhood ?? null}
+              price={formatPrice(event)}
+              detailsUrl={detailsUrl ?? null}
+              saveSlug={event.slug ?? null}
+              image={event.image && typeof event.image === 'object' ? event.image : null}
+            />
+          </div>
         )
       })}
     </div>
