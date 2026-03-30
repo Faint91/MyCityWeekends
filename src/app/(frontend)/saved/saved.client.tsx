@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { getSavedSlugs, subscribeToSavedSlugs } from '@/lib/savedEvents'
 import { EventPickCard } from '@/components/EventPickCard'
@@ -39,8 +39,9 @@ function formatPrice(e: EventDoc): string {
       maximumFractionDigits: 0,
     }).format(n)
 
-  if (typeof min === 'number' && typeof max === 'number')
+  if (typeof min === 'number' && typeof max === 'number') {
     return min === max ? fmt(min) : `${fmt(min)}–${fmt(max)}`
+  }
   if (typeof min === 'number') return `From ${fmt(min)}`
   if (typeof max === 'number') return `Up to ${fmt(max)}`
   return 'Cheap'
@@ -58,42 +59,105 @@ function formatWhen(startAt?: string | null): string | null {
   }).format(new Date(startAt))
 }
 
+async function fetchEventsBySlugs(slugs: string[]): Promise<EventDoc[]> {
+  if (slugs.length === 0) return []
+
+  const res = await fetch(`/api/events/by-slugs?slugs=${encodeURIComponent(slugs.join(','))}`)
+  const json = (await res.json()) as BySlugsResponse
+
+  return Array.isArray(json?.docs) ? json.docs : []
+}
+
 export default function SavedPageClient() {
   const [slugs, setSlugs] = useState<string[]>([])
   const [events, setEvents] = useState<EventDoc[] | null>(null)
 
-  useEffect(() => {
-    const next = getSavedSlugs()
-    setSlugs(next)
-    trackEvent('open_saved', { count: next.length })
-
-    return subscribeToSavedSlugs((nextSlugs) => {
-      setSlugs(nextSlugs)
-    })
-  }, [])
-
-  const slugsParam = useMemo(() => slugs.join(','), [slugs])
+  const previousSlugsRef = useRef<string[]>([])
+  const requestIdRef = useRef(0)
 
   useEffect(() => {
-    let cancelled = false
+    let active = true
 
-    async function run() {
-      if (slugs.length === 0) {
+    async function loadInitial() {
+      const initialSlugs = getSavedSlugs()
+      previousSlugsRef.current = initialSlugs
+      setSlugs(initialSlugs)
+      trackEvent('open_saved', { count: initialSlugs.length })
+
+      if (initialSlugs.length === 0) {
+        if (!active) return
         setEvents([])
         return
       }
-      setEvents(null)
-      const res = await fetch(`/api/events/by-slugs?slugs=${encodeURIComponent(slugsParam)}`)
-      const json = (await res.json()) as BySlugsResponse
-      if (cancelled) return
-      setEvents(Array.isArray(json?.docs) ? json.docs : [])
+
+      const requestId = ++requestIdRef.current
+      const docs = await fetchEventsBySlugs(initialSlugs)
+
+      if (!active || requestId !== requestIdRef.current) return
+      setEvents(docs)
     }
 
-    run()
+    void loadInitial()
+
     return () => {
-      cancelled = true
+      active = false
     }
-  }, [slugs.length, slugsParam])
+  }, [])
+
+  useEffect(() => {
+    let active = true
+
+    const unsubscribe = subscribeToSavedSlugs(async (nextSlugs) => {
+      const previousSlugs = previousSlugsRef.current
+      previousSlugsRef.current = nextSlugs
+
+      setSlugs(nextSlugs)
+
+      if (nextSlugs.length === 0) {
+        setEvents([])
+        return
+      }
+
+      // Instantly remove unsaved items from the current list
+      setEvents((prev) => {
+        if (!prev) return prev
+        return prev.filter((event) => event.slug && nextSlugs.includes(event.slug))
+      })
+
+      // Only fetch newly added slugs
+      const addedSlugs = nextSlugs.filter((slug) => !previousSlugs.includes(slug))
+
+      if (addedSlugs.length === 0) {
+        return
+      }
+
+      const requestId = ++requestIdRef.current
+      const addedDocs = await fetchEventsBySlugs(addedSlugs)
+
+      if (!active || requestId !== requestIdRef.current) return
+
+      setEvents((prev) => {
+        const merged = new Map<string, EventDoc>()
+
+        for (const event of prev ?? []) {
+          if (event.slug) merged.set(event.slug, event)
+        }
+
+        for (const event of addedDocs) {
+          if (event.slug) merged.set(event.slug, event)
+        }
+
+        return nextSlugs
+          .map((slug) => merged.get(slug))
+          .filter((event): event is EventDoc => Boolean(event))
+      })
+    })
+
+    return () => {
+      active = false
+      unsubscribe()
+    }
+  }, [])
 
   if (slugs.length === 0) {
     return (
@@ -110,7 +174,6 @@ export default function SavedPageClient() {
     return <p className="text-black/70 dark:text-white/70">Loading saved events…</p>
   }
 
-  // Keep saved order
   const bySlug = new Map(events.map((e) => [e.slug, e]))
   const ordered = slugs.map((s) => bySlug.get(s)).filter(Boolean) as EventDoc[]
 
@@ -124,13 +187,11 @@ export default function SavedPageClient() {
           <EventPickCard
             key={event.id}
             internalHref={event.slug ? `/event/${event.slug}` : null}
-            // no rank on saved page
             title={event.title ?? 'Untitled event'}
             when={formatWhen(event.startAt)}
             where={venueName ?? event.neighborhood ?? null}
             price={formatPrice(event)}
             detailsUrl={detailsUrl ?? null}
-            // allow saving/un-saving from this page too
             saveSlug={event.slug ?? null}
             image={event.image && typeof event.image === 'object' ? event.image : null}
           />
