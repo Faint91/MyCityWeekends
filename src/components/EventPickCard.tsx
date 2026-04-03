@@ -12,12 +12,13 @@ type Props = {
   title: string
   when?: string | null
   where?: string | null
-  price: string
+  price: string | null
   whyWorthIt?: string | null
   detailsUrl?: string | null
   internalHref?: string | null
   saveSlug?: string | null
   image?: MediaDoc | null
+  backHref?: string | null
 }
 
 function normalizeExternalUrl(url?: string | null) {
@@ -37,8 +38,14 @@ export function EventPickCard({
   internalHref,
   saveSlug,
   image,
+  backHref,
 }: Props) {
   const safeDetailsUrl = normalizeExternalUrl(detailsUrl)
+
+  const eventHref =
+    internalHref && backHref
+      ? `${internalHref}${internalHref.includes('?') ? '&' : '?'}back=${encodeURIComponent(backHref)}`
+      : internalHref
 
   return (
     <article className="rounded-xl border p-4">
@@ -46,13 +53,9 @@ export function EventPickCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 space-y-1">
-              {typeof rank === 'number' ? (
-                <div className="text-sm text-black/60 dark:text-white/60">#{rank}</div>
-              ) : null}
-
-              {internalHref ? (
+              {eventHref ? (
                 <h3 className="truncate text-base font-semibold">
-                  <Link className="underline underline-offset-2" href={internalHref}>
+                  <Link className="underline underline-offset-2" href={eventHref}>
                     {title}
                   </Link>
                 </h3>
@@ -71,19 +74,21 @@ export function EventPickCard({
               {whyWorthIt ? <p className="text-sm">{whyWorthIt}</p> : null}
             </div>
 
-            <div className="shrink-0 rounded-full border px-3 py-1 text-sm font-medium">
-              {price}
-            </div>
+            {price ? (
+              <div className="shrink-0 rounded-full border px-3 py-1 text-sm font-medium">
+                {price}
+              </div>
+            ) : null}
           </div>
 
           <div className="mt-3 flex flex-wrap gap-3">
             {saveSlug ? <SaveToggleButton slug={saveSlug} /> : null}
 
-            {internalHref ? (
+            {eventHref ? (
               <Link
-                href={internalHref}
+                href={eventHref}
                 className="rounded-full border px-4 py-2 text-sm font-medium"
-                onClick={() => trackEvent('open_event_page', { href: internalHref })}
+                onClick={() => trackEvent('open_event_page', { href: eventHref })}
               >
                 Open event page
               </Link>

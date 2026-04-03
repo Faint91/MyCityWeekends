@@ -93,7 +93,7 @@ export async function getWeekendDropItemsBySection(
   return (items.docs as unknown as WeekendDropItemDoc[]) ?? []
 }
 
-export function formatPrice(event: PriceableEvent): string {
+export function formatPrice(event: PriceableEvent): string | null {
   if (event.isFree) return 'Free'
 
   const min = event.priceMin ?? null
@@ -114,7 +114,7 @@ export function formatPrice(event: PriceableEvent): string {
 
   if (typeof min === 'number') return `From ${fmt(min)}`
   if (typeof max === 'number') return `Up to ${fmt(max)}`
-  return 'Cheap'
+  return null
 }
 
 export function formatWhen(startAt?: string | null): string | null {

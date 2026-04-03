@@ -26,7 +26,7 @@ describe('EventPickCard', () => {
       />,
     )
 
-    expect(screen.getByText('#1')).toBeInTheDocument()
+    expect(screen.queryByText('#1')).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Free Comedy Night' })).toBeInTheDocument()
     expect(screen.getByText('Free')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /official link/i })).toHaveAttribute(

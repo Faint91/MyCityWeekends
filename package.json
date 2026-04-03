@@ -22,7 +22,7 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "typecheck": "tsc --noEmit",
-    "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" playwright test --config=playwright.config.ts",
+    "test:e2e": "cross-env PAYLOAD_DISABLE_SCHEMA_PUSH=1 playwright test --config=playwright.config.ts",
     "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts"
   },
   "dependencies": {
@@ -50,6 +50,7 @@
     "lucide-react": "0.563.0",
     "next": "15.4.11",
     "next-sitemap": "^4.2.3",
+    "openai": "^6.33.0",
     "payload": "3.78.0",
     "prism-react-renderer": "^2.3.1",
     "react": "19.2.1",

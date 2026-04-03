@@ -6,7 +6,6 @@ import {
   formatPrice,
   formatWhen,
   getLatestPublishedWeekendDrop,
-  getVenueName,
   getWeekendDropItemsBySection,
 } from '@/lib/weekendDrop'
 
@@ -79,7 +78,6 @@ export default async function Under15Page() {
 
               const price = formatPrice(event)
               const when = formatWhen(event.startAt)
-              const venueName = getVenueName(event)
 
               const detailsUrl = (event.ticketUrl ?? event.sourceUrl) as string | undefined
 
@@ -89,13 +87,14 @@ export default async function Under15Page() {
                   rank={item.rank ?? null}
                   title={event.title ?? 'Untitled event'}
                   when={when}
-                  where={venueName ?? event.neighborhood ?? null}
+                  where={event.neighborhood ?? null}
                   price={price}
                   whyWorthIt={item.whyWorthIt ?? null}
                   detailsUrl={detailsUrl ?? null}
                   internalHref={event.slug ? `/event/${event.slug}` : null}
                   saveSlug={event.slug ?? null}
                   image={event.image && typeof event.image === 'object' ? event.image : null}
+                  backHref="/under-15"
                 />
               )
             })}

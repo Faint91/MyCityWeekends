@@ -5,12 +5,15 @@ import { defineConfig, devices } from '@playwright/test'
  * https://github.com/motdotla/dotenv
  */
 import dotenv from 'dotenv'
-dotenv.config({ path: '.env.e2e' })
+dotenv.config({ path: '.env.local' })
+
+const AUTH_FILE = 'playwright/.auth/admin.json'
 
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
+  globalSetup: './tests/global-setup.ts',
   testDir: './tests/e2e',
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
@@ -26,6 +29,7 @@ export default defineConfig({
     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+    storageState: AUTH_FILE,
   },
 
   webServer: {

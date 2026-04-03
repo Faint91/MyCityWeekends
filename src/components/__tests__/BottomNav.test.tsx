@@ -13,7 +13,7 @@ describe('BottomNav', () => {
     render(<BottomNav />)
 
     expect(screen.getByRole('navigation', { name: 'Primary' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Weekend' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Top 3' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Free' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Under $15' })).toBeInTheDocument()
   })

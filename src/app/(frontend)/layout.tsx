@@ -40,7 +40,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           />
           <div className="min-h-screen pb-[calc(4rem+env(safe-area-inset-bottom))]">
             <Header />
-            {children}
+            <div
+              className="min-h-screen md:pb-0"
+              style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
+            >
+              <main>{children}</main>
+            </div>
             <div className="mt-12">
               <Footer />
             </div>

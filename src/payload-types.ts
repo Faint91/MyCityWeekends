@@ -74,6 +74,8 @@ export interface Config {
     events: Event;
     'weekend-drops': WeekendDrop;
     'weekend-drop-items': WeekendDropItem;
+    'candidate-events': CandidateEvent;
+    'ingestion-runs': IngestionRun;
     forms: Form;
     'form-submissions': FormSubmission;
     'payload-kv': PayloadKv;
@@ -95,6 +97,8 @@ export interface Config {
     events: EventsSelect<false> | EventsSelect<true>;
     'weekend-drops': WeekendDropsSelect<false> | WeekendDropsSelect<true>;
     'weekend-drop-items': WeekendDropItemsSelect<false> | WeekendDropItemsSelect<true>;
+    'candidate-events': CandidateEventsSelect<false> | CandidateEventsSelect<true>;
+    'ingestion-runs': IngestionRunsSelect<false> | IngestionRunsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
@@ -398,6 +402,81 @@ export interface WeekendDropItem {
   createdAt: string;
 }
 /**
+ * Internal review queue for AI-discovered event candidates.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "candidate-events".
+ */
+export interface CandidateEvent {
+  id: number;
+  title: string;
+  city: string;
+  description?: string | null;
+  startAt?: string | null;
+  endAt?: string | null;
+  isFree?: boolean | null;
+  priceMin?: number | null;
+  priceMax?: number | null;
+  currency?: ('CAD' | 'USD') | null;
+  venueName?: string | null;
+  venueAddress?: string | null;
+  venueWebsite?: string | null;
+  googleMapsUrl?: string | null;
+  neighborhood?: string | null;
+  indoorOutdoor?: ('indoor' | 'outdoor' | 'both' | 'unknown') | null;
+  tags?:
+    | {
+        tag: string;
+        id?: string | null;
+      }[]
+    | null;
+  sourceName?: string | null;
+  sourceUrl?: string | null;
+  ticketUrl?: string | null;
+  imageSourceUrl?: string | null;
+  whyWorthItDraft?: string | null;
+  sectionSuggestion?: ('top3' | 'free' | 'under15' | 'under30') | null;
+  rankSuggestion?: number | null;
+  status: 'new' | 'shortlisted' | 'draft_created' | 'rejected' | 'duplicate' | 'published';
+  discoveredAt?: string | null;
+  ingestionRun?: (number | null) | IngestionRun;
+  /**
+   * 0-100 confidence score from the ingestion pipeline.
+   */
+  confidenceScore?: number | null;
+  duplicateFingerprint?: string | null;
+  possibleDuplicateEvent?: (number | null) | Event;
+  adminNotes?: string | null;
+  publishedEvent?: (number | null) | Event;
+  publishedWeekendDropItem?: (number | null) | WeekendDropItem;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Internal log of automated discovery / ingestion runs.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ingestion-runs".
+ */
+export interface IngestionRun {
+  id: number;
+  status: 'running' | 'succeeded' | 'failed' | 'partial';
+  city: string;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  weekendStart?: string | null;
+  weekendEnd?: string | null;
+  promptVersion?: string | null;
+  model?: string | null;
+  rawQuerySummary?: string | null;
+  candidateCount?: number | null;
+  insertedCount?: number | null;
+  duplicateCount?: number | null;
+  errorSummary?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "forms".
  */
@@ -639,6 +718,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'weekend-drop-items';
         value: number | WeekendDropItem;
+      } | null)
+    | ({
+        relationTo: 'candidate-events';
+        value: number | CandidateEvent;
+      } | null)
+    | ({
+        relationTo: 'ingestion-runs';
+        value: number | IngestionRun;
       } | null)
     | ({
         relationTo: 'forms';
@@ -893,6 +980,72 @@ export interface WeekendDropItemsSelect<T extends boolean = true> {
   section?: T;
   rank?: T;
   whyWorthIt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "candidate-events_select".
+ */
+export interface CandidateEventsSelect<T extends boolean = true> {
+  title?: T;
+  city?: T;
+  description?: T;
+  startAt?: T;
+  endAt?: T;
+  isFree?: T;
+  priceMin?: T;
+  priceMax?: T;
+  currency?: T;
+  venueName?: T;
+  venueAddress?: T;
+  venueWebsite?: T;
+  googleMapsUrl?: T;
+  neighborhood?: T;
+  indoorOutdoor?: T;
+  tags?:
+    | T
+    | {
+        tag?: T;
+        id?: T;
+      };
+  sourceName?: T;
+  sourceUrl?: T;
+  ticketUrl?: T;
+  imageSourceUrl?: T;
+  whyWorthItDraft?: T;
+  sectionSuggestion?: T;
+  rankSuggestion?: T;
+  status?: T;
+  discoveredAt?: T;
+  ingestionRun?: T;
+  confidenceScore?: T;
+  duplicateFingerprint?: T;
+  possibleDuplicateEvent?: T;
+  adminNotes?: T;
+  publishedEvent?: T;
+  publishedWeekendDropItem?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ingestion-runs_select".
+ */
+export interface IngestionRunsSelect<T extends boolean = true> {
+  status?: T;
+  city?: T;
+  startedAt?: T;
+  finishedAt?: T;
+  weekendStart?: T;
+  weekendEnd?: T;
+  promptVersion?: T;
+  model?: T;
+  rawQuerySummary?: T;
+  candidateCount?: T;
+  insertedCount?: T;
+  duplicateCount?: T;
+  errorSummary?: T;
   updatedAt?: T;
   createdAt?: T;
 }

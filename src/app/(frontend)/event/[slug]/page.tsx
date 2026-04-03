@@ -9,11 +9,14 @@ import { SaveToggleButton } from '@/components/SaveToggleButton'
 import { mergeOpenGraph } from '@/utilities/mergeOpenGraph'
 import { Media } from '@/components/Media'
 import { getServerSideURL } from '@/utilities/getURL'
+import { MapPin } from 'lucide-react'
+import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
 type Props = {
   params: Promise<{ slug: string }>
+  searchParams: Promise<{ back?: string | string[] }>
 }
 
 function getEventImage(event: Event): MediaDoc | null {
@@ -32,6 +35,14 @@ function getEventLongDescription(event: Event): string | null {
   if (typeof event.description !== 'string') return null
 
   const cleaned = event.description.trim()
+  return cleaned.length ? cleaned : null
+}
+
+function getEventGoogleMapsUrl(event: Event): string | null {
+  if (!event.venue || typeof event.venue !== 'object') return null
+  if (typeof event.venue.googleMapsUrl !== 'string') return null
+
+  const cleaned = event.venue.googleMapsUrl.trim()
   return cleaned.length ? cleaned : null
 }
 
@@ -202,6 +213,26 @@ function buildEventStructuredData(event: Event, slug: string): Record<string, un
   })
 }
 
+function sanitizeBackHref(value: string | string[] | undefined): string | null {
+  const raw = Array.isArray(value) ? value[0] : value
+  if (!raw) return null
+
+  if (!raw.startsWith('/')) return null
+  if (raw.startsWith('//')) return null
+
+  const allowedPrefixes = ['/', '/free', '/under-15', '/saved', '/search']
+
+  const isAllowed = allowedPrefixes.some((prefix) => {
+    if (prefix === '/') {
+      return raw === '/' || raw.startsWith('/?')
+    }
+
+    return raw === prefix || raw.startsWith(`${prefix}?`)
+  })
+
+  return isAllowed ? raw : null
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
   const payload = await getPayloadClient()
@@ -263,8 +294,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export default async function Page({ params }: Props) {
+export default async function Page({ params, searchParams }: Props) {
   const { slug } = await params
+  const { back } = await searchParams
+  const backHref = sanitizeBackHref(back) ?? '/'
   const payload = await getPayloadClient()
 
   const res = await payload.find({
@@ -286,6 +319,7 @@ export default async function Page({ params }: Props) {
   const venueName = getVenueName(event)
   const where = venueName ?? event.neighborhood ?? null
   const officialUrl = (event.ticketUrl ?? event.sourceUrl) as string | undefined
+  const googleMapsUrl = getEventGoogleMapsUrl(event)
   const structuredData = buildEventStructuredData(event, slug)
   const eventImage = getEventImage(event)
   const longDescription = getEventLongDescription(event)
@@ -298,15 +332,23 @@ export default async function Page({ params }: Props) {
       />
       <div className="pt-6 md:pt-8 pb-24">
         <div className="container space-y-6">
-          <header className="space-y-1">
+          <header className="space-y-3">
+            <Link
+              href={backHref}
+              className="inline-flex items-center rounded-full border px-3 py-1 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10"
+            >
+              ← Back
+            </Link>
             <h1 className="text-2xl font-semibold">{event.title ?? 'Untitled event'}</h1>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full border px-3 py-1 text-sm font-medium">{price}</span>
+              {price ? (
+                <span className="rounded-full border px-3 py-1 text-sm font-medium">{price}</span>
+              ) : null}
               {when ? (
                 <span className="text-sm text-black/70 dark:text-white/70">{when}</span>
               ) : null}
               {where ? (
-                <span className="text-sm text-black/70 dark:text-white/70">• {where}</span>
+                <span className="text-sm text-black/70 dark:text-white/70">{where}</span>
               ) : null}
             </div>
           </header>
@@ -326,6 +368,7 @@ export default async function Page({ params }: Props) {
           <div className="flex flex-wrap gap-3">
             <ShareButton />
             {event.slug ? <SaveToggleButton slug={event.slug} /> : null}
+
             {officialUrl ? (
               <a
                 className="rounded-full border px-4 py-2 text-sm font-medium underline"
@@ -334,6 +377,19 @@ export default async function Page({ params }: Props) {
                 rel="noreferrer"
               >
                 Official link
+              </a>
+            ) : null}
+
+            {googleMapsUrl ? (
+              <a
+                className="inline-flex items-center justify-center rounded-full border px-3 py-2"
+                href={googleMapsUrl}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Open in Google Maps"
+                title="Open in Google Maps"
+              >
+                <MapPin className="h-4 w-4" />
               </a>
             ) : null}
           </div>

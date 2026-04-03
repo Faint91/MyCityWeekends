@@ -6,7 +6,6 @@ import {
   formatPrice,
   formatWhen,
   getLatestPublishedWeekendDrop,
-  getVenueName,
   getWeekendDropTop3Items,
 } from '@/lib/weekendDrop'
 
@@ -62,8 +61,6 @@ export default async function WeekendPage() {
         </header>
 
         <section aria-label="Top 3 picks" className="space-y-3">
-          <h2 className="text-lg font-semibold">Top 3</h2>
-
           {top3.length === 0 ? (
             <p className="text-black/70 dark:text-white/70">
               No Top 3 items yet for this weekend drop.
@@ -85,7 +82,6 @@ export default async function WeekendPage() {
 
                 const price = formatPrice(event)
                 const when = formatWhen(event.startAt)
-                const venueName = getVenueName(event)
 
                 const detailsUrl = (event.ticketUrl ?? event.sourceUrl) as string | undefined
 
@@ -95,13 +91,14 @@ export default async function WeekendPage() {
                     rank={item.rank ?? null}
                     title={event.title ?? 'Untitled event'}
                     when={when}
-                    where={venueName ?? event.neighborhood ?? null}
+                    where={event.neighborhood ?? null}
                     price={price}
                     whyWorthIt={item.whyWorthIt ?? null}
                     detailsUrl={detailsUrl ?? null}
                     internalHref={event.slug ? `/event/${event.slug}` : null}
                     saveSlug={event.slug ?? null}
                     image={event.image && typeof event.image === 'object' ? event.image : null}
+                    backHref="/"
                   />
                 )
               })}

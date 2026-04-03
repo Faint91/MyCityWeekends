@@ -27,7 +27,7 @@ type BySlugsResponse = {
   docs?: EventDoc[]
 }
 
-function formatPrice(e: EventDoc): string {
+function formatPrice(e: EventDoc): string | null {
   if (e.isFree) return 'Free'
   const min = e.priceMin ?? null
   const max = e.priceMax ?? null
@@ -44,7 +44,7 @@ function formatPrice(e: EventDoc): string {
   }
   if (typeof min === 'number') return `From ${fmt(min)}`
   if (typeof max === 'number') return `Up to ${fmt(max)}`
-  return 'Cheap'
+  return null
 }
 
 function formatWhen(startAt?: string | null): string | null {
@@ -69,7 +69,7 @@ async function fetchEventsBySlugs(slugs: string[]): Promise<EventDoc[]> {
 }
 
 export default function SavedPageClient() {
-  const [savedSlugs, setSavedSlugs] = useState<string[]>([])
+  const [_savedSlugs, setSavedSlugs] = useState<string[]>([])
   const [visibleSlugs, setVisibleSlugs] = useState<string[]>([])
   const [events, setEvents] = useState<EventDoc[] | null>(null)
   const [removingSlugs, setRemovingSlugs] = useState<string[]>([])
@@ -207,7 +207,6 @@ export default function SavedPageClient() {
   return (
     <div className="space-y-3">
       {ordered.map((event) => {
-        const venueName = typeof event.venue === 'object' && event.venue ? event.venue.name : null
         const detailsUrl = (event.ticketUrl ?? event.sourceUrl) as string | undefined
         const isRemoving = event.slug ? removingSlugs.includes(event.slug) : false
 
@@ -222,11 +221,12 @@ export default function SavedPageClient() {
               internalHref={event.slug ? `/event/${event.slug}` : null}
               title={event.title ?? 'Untitled event'}
               when={formatWhen(event.startAt)}
-              where={venueName ?? event.neighborhood ?? null}
+              where={event.neighborhood ?? null}
               price={formatPrice(event)}
               detailsUrl={detailsUrl ?? null}
               saveSlug={event.slug ?? null}
               image={event.image && typeof event.image === 'object' ? event.image : null}
+              backHref="/saved"
             />
           </div>
         )

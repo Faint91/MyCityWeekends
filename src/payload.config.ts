@@ -17,6 +17,8 @@ import { Venues } from './collections/Venues'
 import { Events } from './collections/Events'
 import { WeekendDrops } from './collections/WeekendDrops'
 import { WeekendDropItems } from './collections/WeekendDropItems'
+import { CandidateEvents } from './collections/CandidateEvents'
+import { IngestionRuns } from './collections/IngestionRuns'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -25,7 +27,7 @@ export default buildConfig({
   admin: {
     components: {
       beforeLogin: ['@/components/BeforeLogin'],
-      beforeDashboard: ['@/components/BeforeDashboard'],
+      beforeDashboard: ['@/components/BeforeDashboard', '@/components/admin/ExecuteIngestionPanel'],
     },
     importMap: {
       baseDir: path.resolve(dirname),
@@ -59,9 +61,22 @@ export default buildConfig({
     pool: {
       connectionString: process.env.DATABASE_URL || '',
     },
-    push: process.env.NODE_ENV !== 'production' && !process.env.CI,
+    push:
+      process.env.NODE_ENV !== 'production' &&
+      !process.env.CI &&
+      process.env.PAYLOAD_DISABLE_SCHEMA_PUSH !== '1',
   }),
-  collections: [Media, Categories, Users, Venues, Events, WeekendDrops, WeekendDropItems],
+  collections: [
+    Media,
+    Categories,
+    Users,
+    Venues,
+    Events,
+    WeekendDrops,
+    WeekendDropItems,
+    CandidateEvents,
+    IngestionRuns,
+  ],
   cors: [getServerSideURL()].filter(Boolean),
   globals: [Header, Footer],
   plugins: [

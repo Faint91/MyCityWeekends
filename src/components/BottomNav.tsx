@@ -6,7 +6,7 @@ import React from 'react'
 import { trackEvent } from '@/lib/ga'
 
 const items = [
-  { href: '/', label: 'Weekend' },
+  { href: '/', label: 'Top 3' },
   { href: '/free', label: 'Free' },
   { href: '/under-15', label: 'Under $15' },
   { href: '/saved', label: 'Saved' },

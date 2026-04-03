@@ -7,7 +7,7 @@ import { getPayload } from 'payload'
 import PageClient from './page.client'
 import SearchBarClient from './SearchBarClient'
 import { EventPickCard } from '@/components/EventPickCard'
-import { formatPrice, formatWhen, getVenueName } from '@/lib/weekendDrop'
+import { formatPrice, formatWhen } from '@/lib/weekendDrop'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,7 +69,7 @@ export default async function SearchPage({ searchParams: searchParamsPromise }: 
                 key={event.id}
                 title={event.title ?? 'Untitled event'}
                 when={formatWhen(event.startAt)}
-                where={getVenueName(event) ?? event.neighborhood ?? null}
+                where={event.neighborhood ?? null}
                 price={formatPrice(event)}
                 whyWorthIt={event.description ?? null}
                 detailsUrl={event.ticketUrl ?? event.sourceUrl ?? null}

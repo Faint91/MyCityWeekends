@@ -1,0 +1,60 @@
+import type { WeekendSection } from '@/lib/weekendDrop'
+
+export type DiscoverySource = 'mock' | 'openai_web'
+
+export type DiscoveredCandidate = {
+  title: string
+  city: string
+  description?: string
+  startAt?: string
+  endAt?: string
+  isFree?: boolean
+  priceMin?: number
+  priceMax?: number
+  currency?: 'CAD' | 'USD'
+  venueName?: string
+  venueAddress?: string
+  venueWebsite?: string
+  googleMapsUrl?: string
+  neighborhood?: string
+  indoorOutdoor?: 'indoor' | 'outdoor' | 'both' | 'unknown'
+  tags?: string[]
+  sourceName?: string
+  sourceUrl?: string
+  ticketUrl?: string
+  imageSourceUrl?: string
+  whyWorthItDraft?: string
+  sectionSuggestion?: WeekendSection
+  rankSuggestion?: number
+  confidenceScore?: number
+}
+
+export type DiscoveryProviderResult = {
+  source: DiscoverySource
+  city: string
+  weekendStart?: string
+  weekendEnd?: string
+  promptVersion: string
+  model: string
+  rawQuerySummary: string
+  candidates: DiscoveredCandidate[]
+}
+
+export type DiscoverCandidateEventsInput = {
+  source?: DiscoverySource
+  city?: string
+  weekendStart?: string
+  weekendEnd?: string
+}
+
+export type DiscoverCandidateEventsResult = {
+  runId: number
+  source: DiscoverySource
+  city: string
+  found: number
+  inserted: number
+  duplicates: number
+  candidateIds: number[]
+  weekendDropId: number
+  weekendDropTitle: string
+}
