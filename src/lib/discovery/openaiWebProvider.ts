@@ -1,7 +1,15 @@
 import OpenAI from 'openai'
 import type { DiscoveryProviderResult, DiscoveredCandidate } from './types'
 
-const openai = new OpenAI()
+function getOpenAIClient(): OpenAI {
+  const apiKey = process.env.OPENAI_API_KEY
+
+  if (!apiKey) {
+    throw new Error('Missing OPENAI_API_KEY for openai_web discovery')
+  }
+
+  return new OpenAI({ apiKey })
+}
 
 const OPENAI_DISCOVERY_TIMEOUT_MS = Number(process.env.OPENAI_DISCOVERY_TIMEOUT_MS ?? 300_000)
 
@@ -283,6 +291,8 @@ export async function discoverWithOpenAIWeb(input: {
       model,
       timeoutMs: OPENAI_DISCOVERY_TIMEOUT_MS,
     })
+
+    const openai = getOpenAIClient()
 
     response = await openai.responses.create(
       {
