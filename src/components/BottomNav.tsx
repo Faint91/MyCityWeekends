@@ -8,7 +8,7 @@ import { trackEvent } from '@/lib/ga'
 const items = [
   { href: '/', label: 'Top 3' },
   { href: '/free', label: 'Free' },
-  { href: '/under-15', label: 'Under $15' },
+  { href: '/under-30', label: 'Under $30' },
   { href: '/saved', label: 'Saved' },
 ]
 
@@ -18,7 +18,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Primary"
-      className="fixed bottom-0 left-0 right-0 z-50 h-16 border-t bg-white/95 backdrop-blur dark:bg-black/70"
+      className="mcw-nav-surface fixed bottom-0 left-0 right-0 z-50 h-16 border-t border-white/10"
     >
       <div
         className="container flex h-16 items-center justify-around gap-2 py-3"
@@ -37,9 +37,7 @@ export function BottomNav() {
               href={item.href}
               className={[
                 'rounded-full px-4 py-2 text-sm font-medium transition',
-                isActive
-                  ? 'bg-black text-white dark:bg-white dark:text-black'
-                  : 'text-black/70 hover:bg-black/5 dark:text-white/70 dark:hover:bg-white/10',
+                isActive ? 'bg-white text-slate-950 shadow-sm' : 'text-white/70 hover:bg-white/10',
               ].join(' ')}
             >
               {item.label}

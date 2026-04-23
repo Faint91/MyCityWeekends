@@ -6,11 +6,9 @@ const indoorOutdoorOptions = [
   { label: 'Both', value: 'both' },
   { label: 'Unknown', value: 'unknown' },
 ]
-
 const sectionSuggestionOptions = [
   { label: 'Top 3', value: 'top3' },
   { label: 'Free', value: 'free' },
-  { label: 'Under $15', value: 'under15' },
   { label: 'Under $30', value: 'under30' },
 ]
 
@@ -22,6 +20,10 @@ const statusOptions = [
   { label: 'Duplicate', value: 'duplicate' },
   { label: 'Published', value: 'published' },
 ]
+
+const normalizeLegacyBudgetSection = <T>(value: T): T | 'under30' => {
+  return value === 'under15' ? 'under30' : value
+}
 
 export const CandidateEvents: CollectionConfig = {
   slug: 'candidate-events',
@@ -171,6 +173,16 @@ export const CandidateEvents: CollectionConfig = {
       name: 'sectionSuggestion',
       type: 'select',
       options: sectionSuggestionOptions,
+      admin: {
+        description: 'Budget picks are saved as Under $30.',
+      },
+      hooks: {
+        beforeValidate: [
+          ({ value }) => {
+            return normalizeLegacyBudgetSection(value)
+          },
+        ],
+      },
     },
     {
       name: 'rankSuggestion',

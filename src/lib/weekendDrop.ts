@@ -121,14 +121,27 @@ export function formatWhen(startAt?: string | null): string | null {
   if (!startAt) return null
   const d = new Date(startAt)
 
-  return new Intl.DateTimeFormat('en-CA', {
+  const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Vancouver',
     weekday: 'short',
     month: 'short',
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
-  }).format(d)
+    hour12: true,
+  }).formatToParts(d)
+
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? ''
+
+  return [
+    get('weekday'),
+    get('month'),
+    get('day'),
+    `${get('hour')}:${get('minute')} ${get('dayPeriod').replace(/\./g, '').toLowerCase()}`,
+  ]
+    .filter(Boolean)
+    .join(' ')
 }
 
 export function getVenueName(event: VenueLikeEvent): string | null {

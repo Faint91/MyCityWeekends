@@ -12,6 +12,7 @@ import type {
   DiscoverCandidateEventsResult,
   DiscoveredCandidate,
   DiscoveryProviderResult,
+  DiscoveryQualitySummary,
   DiscoverySource,
 } from './types'
 
@@ -44,6 +45,16 @@ type ExistingEventLookup = {
   ticketUrl?: string | null
   venueName?: string | null
   venueAddress?: string | null
+}
+
+type WritableCandidateSectionSuggestion = 'top3' | 'free' | 'under30'
+
+function normalizeLegacyCandidateSectionSuggestion(
+  section: 'top3' | 'free' | 'under15' | 'under30' | null | undefined,
+): WritableCandidateSectionSuggestion | undefined {
+  if (!section) return undefined
+  if (section === 'under15') return 'under30'
+  return section
 }
 
 const WEEKEND_DROP_TIME_ZONE = 'America/Vancouver'
@@ -332,8 +343,8 @@ function getMockDiscoveryCandidates(city: string, weekendStart: string): Discove
         startAt: sunday19.toISOString(),
         endAt: sunday22.toISOString(),
         isFree: false,
-        priceMin: 12,
-        priceMax: 15,
+        priceMin: 18,
+        priceMax: 24,
         currency: 'CAD',
         venueName: 'Granville Basement Theatre',
         venueAddress: '850 Granville St, Vancouver, BC',
@@ -343,8 +354,8 @@ function getMockDiscoveryCandidates(city: string, weekendStart: string): Discove
         sourceName: 'Mock Discovery Feed',
         sourceUrl: 'https://example.com/mock/indie-comedy-basement-night',
         ticketUrl: 'https://example.com/mock/indie-comedy-basement-night',
-        whyWorthItDraft: 'Cheap night-out option that still feels like a real plan.',
-        sectionSuggestion: 'under15',
+        whyWorthItDraft: 'Budget night-out option that still feels like a real plan.',
+        sectionSuggestion: 'under30',
         confidenceScore: 88,
       },
       {
@@ -433,6 +444,185 @@ function isDuplicateAgainstEvents(
   return existingEvents.some((existing) => areLikelyDuplicateEvents(candidate, existing))
 }
 
+function buildDiscoveryQualitySummary(provider: DiscoveryProviderResult): DiscoveryQualitySummary {
+  return (
+    provider.qualitySummary ?? {
+      freeCount: provider.candidates.filter((candidate) => candidate.isFree === true).length,
+      under30Count: provider.candidates.filter(
+        (candidate) =>
+          candidate.isFree !== true &&
+          typeof candidate.priceMin === 'number' &&
+          candidate.priceMin <= 30,
+      ).length,
+      pricedCount: provider.candidates.filter(
+        (candidate) =>
+          typeof candidate.priceMin === 'number' || typeof candidate.priceMax === 'number',
+      ).length,
+      missingPriceCount: provider.candidates.filter(
+        (candidate) =>
+          candidate.isFree !== true &&
+          typeof candidate.priceMin !== 'number' &&
+          typeof candidate.priceMax !== 'number',
+      ).length,
+      refillFreeUsed: false,
+      refillUnder30Used: false,
+    }
+  )
+}
+
+function extractMetaImageUrl(html: string): string | null {
+  const patterns = [
+    /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["'][^>]*>/i,
+    /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["'][^>]*>/i,
+    /<link[^>]+rel=["']image_src["'][^>]+href=["']([^"']+)["'][^>]*>/i,
+    /<link[^>]+href=["']([^"']+)["'][^>]+rel=["']image_src["'][^>]*>/i,
+  ]
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern)
+    const value = match?.[1]?.trim()
+    if (value) return value
+  }
+
+  return null
+}
+
+function extractSchemaImageUrl(html: string): string | null {
+  const match = html.match(/"image"\s*:\s*"([^"]+)"/i)
+  return match?.[1]?.trim() ?? null
+}
+
+function resolveImageUrl(imageUrl: string | null, pageUrl: string): string | null {
+  if (!imageUrl) return null
+
+  try {
+    return new URL(imageUrl, pageUrl).toString()
+  } catch {
+    return null
+  }
+}
+
+function looksLikeDirectImageAssetUrl(imageUrl: string | null): boolean {
+  if (!imageUrl) return false
+
+  try {
+    const url = new URL(imageUrl)
+    const pathname = url.pathname.toLowerCase()
+    const search = url.search.toLowerCase()
+    const host = url.hostname.toLowerCase()
+
+    const hasImageExtension =
+      pathname.endsWith('.jpg') ||
+      pathname.endsWith('.jpeg') ||
+      pathname.endsWith('.png') ||
+      pathname.endsWith('.webp') ||
+      pathname.endsWith('.avif')
+
+    const looksLikeImageCdnHost =
+      /img\.evbuc\.com|images\.ctfassets\.net|cdn\.|cloudfront\.net|imgix\.net|tmimgs|ticketmaster/i.test(
+        host,
+      )
+
+    const hasImageStyleQuery = /format=|fm=|auto=format|w=|q=|fit=|crop=|quality=/.test(search)
+
+    return hasImageExtension || (looksLikeImageCdnHost && hasImageStyleQuery)
+  } catch {
+    return false
+  }
+}
+
+function normalizeDiscoveredImageUrl(imageUrl: string | null | undefined): string | null {
+  const cleaned = normalizeUrl(imageUrl)?.replace(/&amp;/g, '&') ?? null
+  if (!cleaned) return null
+
+  try {
+    const url = new URL(cleaned)
+
+    const looksNextImageProxy =
+      url.pathname.includes('/_next/image') || /\/_next\/image\/?$/.test(url.pathname)
+
+    if (looksNextImageProxy) {
+      const nestedUrl = url.searchParams.get('url')?.trim()?.replace(/&amp;/g, '&') ?? null
+      return looksLikeDirectImageAssetUrl(nestedUrl) ? nestedUrl : null
+    }
+
+    const normalized = url.toString()
+    return looksLikeDirectImageAssetUrl(normalized) ? normalized : null
+  } catch {
+    return looksLikeDirectImageAssetUrl(cleaned) ? cleaned : null
+  }
+}
+
+function looksUsableImageUrl(imageUrl: string | null): boolean {
+  if (!imageUrl) return false
+  if (/logo|avatar|icon|favicon|sprite/i.test(imageUrl)) return false
+
+  return looksLikeDirectImageAssetUrl(imageUrl)
+}
+
+async function extractImageUrlFromPage(pageUrl: string | null | undefined): Promise<string | null> {
+  const normalizedPageUrl = normalizeUrl(pageUrl)
+  if (!normalizedPageUrl) return null
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 8_000)
+
+  try {
+    const response = await fetch(normalizedPageUrl, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; MyCityWeekendsBot/1.0)',
+        Accept: 'text/html,application/xhtml+xml',
+      },
+      redirect: 'follow',
+    })
+
+    if (!response.ok) return null
+
+    const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
+    if (!contentType.includes('text/html')) return null
+
+    const html = await response.text()
+
+    const metaImage = normalizeDiscoveredImageUrl(
+      resolveImageUrl(extractMetaImageUrl(html), normalizedPageUrl),
+    )
+    if (looksUsableImageUrl(metaImage)) return metaImage
+
+    const schemaImage = normalizeDiscoveredImageUrl(
+      resolveImageUrl(extractSchemaImageUrl(html), normalizedPageUrl),
+    )
+    if (looksUsableImageUrl(schemaImage)) return schemaImage
+
+    return null
+  } catch {
+    return null
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+async function resolveCandidateImageSourceUrl(
+  rawCandidate: DiscoveredCandidate,
+): Promise<string | null> {
+  const existing = normalizeDiscoveredImageUrl(rawCandidate.imageSourceUrl)
+  if (existing) return existing
+
+  const fromSource = normalizeDiscoveredImageUrl(
+    await extractImageUrlFromPage(rawCandidate.sourceUrl),
+  )
+  if (fromSource) return fromSource
+
+  const fromTicket = normalizeDiscoveredImageUrl(
+    await extractImageUrlFromPage(rawCandidate.ticketUrl),
+  )
+  if (fromTicket) return fromTicket
+
+  return null
+}
+
 export async function discoverCandidateEvents(
   input: DiscoverCandidateEventsInput = {},
 ): Promise<DiscoverCandidateEventsResult> {
@@ -464,6 +654,12 @@ export async function discoverCandidateEvents(
       candidateCount: 0,
       insertedCount: 0,
       duplicateCount: 0,
+      freeCount: 0,
+      under30Count: 0,
+      pricedCount: 0,
+      missingPriceCount: 0,
+      refillFreeUsed: false,
+      refillUnder30Used: false,
     },
   })
 
@@ -474,6 +670,8 @@ export async function discoverCandidateEvents(
       weekendStart,
       weekendEnd,
     })
+
+    const qualitySummary = buildDiscoveryQualitySummary(provider)
 
     const [existingCandidateResult, existingEventResult] = await Promise.all([
       payload.find({
@@ -532,6 +730,16 @@ export async function discoverCandidateEvents(
           .filter((tag): tag is string => Boolean(tag))
           .map((tag) => ({ tag })) ?? []
 
+      const resolvedImageSourceUrl = await resolveCandidateImageSourceUrl(rawCandidate)
+
+      console.info('[discovery] Candidate image URL resolved', {
+        title: rawCandidate.title,
+        originalImageSourceUrl: normalizeUrl(rawCandidate.imageSourceUrl),
+        resolvedImageSourceUrl,
+        sourceUrl: normalizeUrl(rawCandidate.sourceUrl),
+        ticketUrl: normalizeUrl(rawCandidate.ticketUrl),
+      })
+
       const created = await payload.create({
         collection: 'candidate-events',
         overrideAccess: true,
@@ -555,9 +763,10 @@ export async function discoverCandidateEvents(
           sourceName: cleanString(rawCandidate.sourceName) ?? 'Discovery Pipeline',
           sourceUrl: normalizeUrl(rawCandidate.sourceUrl),
           ticketUrl: normalizeUrl(rawCandidate.ticketUrl),
-          imageSourceUrl: normalizeUrl(rawCandidate.imageSourceUrl),
+          imageSourceUrl: resolvedImageSourceUrl,
           whyWorthItDraft: cleanString(rawCandidate.whyWorthItDraft),
-          sectionSuggestion: rawCandidate.sectionSuggestion,
+          sectionSuggestion:
+            normalizeLegacyCandidateSectionSuggestion(rawCandidate.sectionSuggestion) ?? null,
           rankSuggestion: rawCandidate.rankSuggestion,
           status: 'new',
           discoveredAt: new Date().toISOString(),
@@ -594,7 +803,20 @@ export async function discoverCandidateEvents(
         candidateCount: provider.candidates.length,
         insertedCount: inserted,
         duplicateCount: duplicates,
+        freeCount: qualitySummary.freeCount,
+        under30Count: qualitySummary.under30Count,
+        pricedCount: qualitySummary.pricedCount,
+        missingPriceCount: qualitySummary.missingPriceCount,
+        refillFreeUsed: qualitySummary.refillFreeUsed,
+        refillUnder30Used: qualitySummary.refillUnder30Used,
       },
+    })
+
+    console.log('[discovery] Quality summary', {
+      runId: run.id,
+      source,
+      city,
+      ...qualitySummary,
     })
 
     return {
@@ -607,6 +829,7 @@ export async function discoverCandidateEvents(
       candidateIds,
       weekendDropId: weekendDrop.id,
       weekendDropTitle: weekendDrop.title,
+      qualitySummary,
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown discovery error.'

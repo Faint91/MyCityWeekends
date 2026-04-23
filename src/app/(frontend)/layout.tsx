@@ -38,10 +38,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               preview: isEnabled,
             }}
           />
-          <div className="min-h-screen pb-[calc(4rem+env(safe-area-inset-bottom))]">
+          <div
+            data-theme="dark"
+            className="mcw-site-shell min-h-screen pb-[calc(4rem+env(safe-area-inset-bottom))]"
+          >
             <Header />
             <div
-              className="min-h-screen md:pb-0"
+              className="md:pb-0"
               style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
             >
               <main>{children}</main>

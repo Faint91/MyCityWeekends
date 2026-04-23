@@ -26,7 +26,7 @@ export function ShareButton() {
     <button
       type="button"
       onClick={onShare}
-      className="rounded-full border px-4 py-2 text-sm font-medium"
+      className="rounded-full border border-[#007AFF] bg-[#007AFF] px-3 py-1.5 text-sm font-medium text-white transition hover:border-[#0066D6] hover:bg-[#0066D6]"
       aria-label="Share this event"
     >
       Share

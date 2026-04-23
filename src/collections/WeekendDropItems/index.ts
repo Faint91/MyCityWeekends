@@ -1,5 +1,9 @@
 import type { CollectionConfig } from 'payload'
 
+const normalizeLegacyBudgetSection = <T>(value: T): T | 'under30' => {
+  return value === 'under15' ? 'under30' : value
+}
+
 export const WeekendDropItems: CollectionConfig = {
   slug: 'weekend-drop-items',
   admin: {
@@ -27,9 +31,18 @@ export const WeekendDropItems: CollectionConfig = {
       options: [
         { label: 'Top 3', value: 'top3' },
         { label: 'Free', value: 'free' },
-        { label: 'Under $15', value: 'under15' },
         { label: 'Under $30', value: 'under30' },
       ],
+      admin: {
+        description: 'Budget picks are saved as Under $30.',
+      },
+      hooks: {
+        beforeValidate: [
+          ({ value }) => {
+            return normalizeLegacyBudgetSection(value)
+          },
+        ],
+      },
     },
     {
       name: 'rank',

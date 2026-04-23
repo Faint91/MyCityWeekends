@@ -23,7 +23,8 @@
     "test:ui": "vitest --ui",
     "typecheck": "tsc --noEmit",
     "test:e2e": "cross-env PAYLOAD_DISABLE_SCHEMA_PUSH=1 playwright test --config=playwright.config.ts",
-    "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts"
+    "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts",
+    "backfill:under30": "cross-env NODE_OPTIONS=--no-deprecation tsx src/scripts/backfillUnder15ToUnder30.ts"
   },
   "dependencies": {
     "@payloadcms/admin-bar": "3.78.0",

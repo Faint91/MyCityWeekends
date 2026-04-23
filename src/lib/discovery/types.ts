@@ -2,6 +2,15 @@ import type { WeekendSection } from '@/lib/weekendDrop'
 
 export type DiscoverySource = 'mock' | 'openai_web'
 
+export type DiscoveryQualitySummary = {
+  freeCount: number
+  under30Count: number
+  pricedCount: number
+  missingPriceCount: number
+  refillFreeUsed: boolean
+  refillUnder30Used: boolean
+}
+
 export type DiscoveredCandidate = {
   title: string
   city: string
@@ -38,6 +47,7 @@ export type DiscoveryProviderResult = {
   model: string
   rawQuerySummary: string
   candidates: DiscoveredCandidate[]
+  qualitySummary?: DiscoveryQualitySummary
 }
 
 export type DiscoverCandidateEventsInput = {
@@ -57,4 +67,5 @@ export type DiscoverCandidateEventsResult = {
   candidateIds: number[]
   weekendDropId: number
   weekendDropTitle: string
+  qualitySummary: DiscoveryQualitySummary
 }

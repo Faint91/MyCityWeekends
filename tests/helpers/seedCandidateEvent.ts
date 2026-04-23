@@ -24,6 +24,8 @@ export async function seedCandidateEvent(): Promise<SeededCandidateEvent> {
   const venueName = `Playwright Venue ${suffix}`
   const startAt = '2026-04-18T18:00:00.000Z'
   const whyWorthItDraft = 'A seeded publishable event used for admin e2e coverage.'
+  const sourceUrl = `https://example.com/source/${suffix}`
+  const ticketUrl = `https://example.com/tickets/${suffix}`
 
   const created = await payload.create({
     collection: 'candidate-events',
@@ -59,6 +61,77 @@ export async function seedCandidateEvent(): Promise<SeededCandidateEvent> {
   }
 }
 
+export async function seedPublishableCandidateScenarioWithPublishedAndDraft() {
+  const payload = await getTestPayload()
+  const suffix = `${Date.now()}-${Math.floor(Math.random() * 100000)}`
+  const title = `Playwright Candidate Event ${suffix}`
+  const venueName = `Playwright Venue ${suffix}`
+  const startAt = '2026-04-18T18:00:00.000Z'
+  const whyWorthItDraft = 'A seeded publishable event used for admin e2e coverage.'
+  const sourceUrl = `https://example.com/source/${suffix}`
+  const ticketUrl = `https://example.com/tickets/${suffix}`
+
+  const publishedWeekendDrop = await payload.create({
+    collection: 'weekend-drops',
+    overrideAccess: true,
+    draft: false,
+    data: {
+      title: `Playwright Published Weekend ${suffix}`,
+      city: 'Vancouver, BC',
+      weekendStart: '2099-04-18T00:00:00.000Z',
+      weekendEnd: '2099-04-20T00:00:00.000Z',
+      _status: 'published',
+    },
+  })
+
+  const draftWeekendDrop = await payload.create({
+    collection: 'weekend-drops',
+    overrideAccess: true,
+    draft: true,
+    data: {
+      title: `Playwright Draft Weekend ${suffix}`,
+      city: 'Vancouver, BC',
+      weekendStart: '2100-04-25T00:00:00.000Z',
+      weekendEnd: '2100-04-27T00:00:00.000Z',
+    },
+  })
+
+  const candidate = await payload.create({
+    collection: 'candidate-events',
+    overrideAccess: true,
+    data: {
+      title,
+      city: 'Vancouver, BC',
+      description: 'Seeded candidate event for Playwright.',
+      startAt,
+      endAt: '2026-04-18T20:00:00.000Z',
+      isFree: true,
+      venueName,
+      venueAddress: '350 W Georgia St, Vancouver, BC',
+      neighborhood: 'Downtown',
+      sourceName: 'Playwright Seed',
+      sourceUrl,
+      ticketUrl,
+      whyWorthItDraft,
+      sectionSuggestion: 'free',
+      confidenceScore: 99,
+      status: 'new',
+      adminNotes: 'Seeded by Playwright e2e test.',
+    },
+  })
+
+  return {
+    candidateId: candidate.id,
+    title,
+    startAt,
+    venueName,
+    whyWorthItDraft,
+    sectionSuggestion: 'free' as const,
+    publishedWeekendDropId: publishedWeekendDrop.id,
+    draftWeekendDropId: draftWeekendDrop.id,
+  }
+}
+
 export async function seedPublishableCandidateScenario(): Promise<SeededCandidateEvent> {
   const payload = await getTestPayload()
   const candidate = await seedCandidateEvent()
@@ -73,8 +146,8 @@ export async function seedPublishableCandidateScenario(): Promise<SeededCandidat
     data: {
       title: weekendDropTitle,
       city: 'Vancouver, BC',
-      weekendStart: '2026-04-18T00:00:00.000Z',
-      weekendEnd: '2026-04-20T00:00:00.000Z',
+      weekendStart: '2099-04-18T00:00:00.000Z',
+      weekendEnd: '2099-04-20T00:00:00.000Z',
     },
   })
 
@@ -83,6 +156,17 @@ export async function seedPublishableCandidateScenario(): Promise<SeededCandidat
     weekendDropId: weekendDrop.id,
     weekendDropTitle,
   }
+}
+
+export async function getWeekendDropItemById(id: number) {
+  const payload = await getTestPayload()
+
+  return payload.findByID({
+    collection: 'weekend-drop-items',
+    id,
+    depth: 0,
+    overrideAccess: true,
+  })
 }
 
 export async function findEventByTitleAndStartAt(
@@ -147,28 +231,28 @@ export async function cleanupCandidateEventArtifacts(seed: SeededCandidateEvent)
     },
   })
 
-  const eventIds = new Set(events.docs.map((event) => event.id))
+  const eventIds = Array.from(new Set(events.docs.map((event) => event.id))).filter(
+    (id): id is number => typeof id === 'number',
+  )
 
-  if (seed.weekendDropId) {
+  if (eventIds.length > 0) {
     const weekendDropItems = await payload.find({
       collection: 'weekend-drop-items',
       overrideAccess: true,
-      limit: 50,
+      limit: 100,
       where: {
-        weekendDrop: { equals: seed.weekendDropId },
+        or: eventIds.map((eventId) => ({
+          event: { equals: eventId },
+        })),
       },
     })
 
     for (const item of weekendDropItems.docs) {
-      const eventId = typeof item.event === 'number' ? item.event : item.event?.id
-
-      if (eventId && eventIds.has(eventId)) {
-        await payload.delete({
-          collection: 'weekend-drop-items',
-          id: item.id,
-          overrideAccess: true,
-        })
-      }
+      await payload.delete({
+        collection: 'weekend-drop-items',
+        id: item.id,
+        overrideAccess: true,
+      })
     }
   }
 

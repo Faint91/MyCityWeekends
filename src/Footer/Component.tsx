@@ -12,7 +12,7 @@ export async function Footer() {
   const navItems = footerData?.navItems || []
 
   return (
-    <footer className="mt-auto border-t border-border bg-black text-white dark:bg-card">
+    <footer className="mcw-nav-surface mt-auto border-t border-white/10 text-white">
       <div className="container flex flex-col gap-6 py-8 md:flex-row md:items-start md:justify-between">
         <div className="w-full min-w-0 md:w-auto">
           <Link href="/" className="block w-full">

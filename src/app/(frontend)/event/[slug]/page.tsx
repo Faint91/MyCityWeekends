@@ -220,7 +220,7 @@ function sanitizeBackHref(value: string | string[] | undefined): string | null {
   if (!raw.startsWith('/')) return null
   if (raw.startsWith('//')) return null
 
-  const allowedPrefixes = ['/', '/free', '/under-15', '/saved', '/search']
+  const allowedPrefixes = ['/', '/free', '/under-15', '/under-30', '/saved', '/search']
 
   const isAllowed = allowedPrefixes.some((prefix) => {
     if (prefix === '/') {
@@ -330,25 +330,34 @@ export default async function Page({ params, searchParams }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      <div className="pt-6 md:pt-8 pb-24">
+      <div className="pt-6 pb-1 -mb-12 md:pt-8 md:-mb-14">
+        {' '}
         <div className="container space-y-6">
           <header className="space-y-3">
             <Link
               href={backHref}
-              className="inline-flex items-center rounded-full border px-3 py-1 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10"
+              className="inline-flex items-center rounded-full border border-[#007AFF] bg-[#007AFF] px-3 py-1.5 text-sm font-medium text-white transition hover:border-[#0066D6] hover:bg-[#0066D6]"
             >
               ← Back
             </Link>
             <h1 className="text-2xl font-semibold">{event.title ?? 'Untitled event'}</h1>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2">
+              {' '}
               {price ? (
-                <span className="rounded-full border px-3 py-1 text-sm font-medium">{price}</span>
+                <span className="shrink-0 rounded-full border border-[#B9DCFF] bg-[#EAF4FF] px-3 py-1 text-sm font-medium text-[#2F6EA9]">
+                  {price}
+                </span>
               ) : null}
-              {when ? (
-                <span className="text-sm text-black/70 dark:text-white/70">{when}</span>
-              ) : null}
-              {where ? (
-                <span className="text-sm text-black/70 dark:text-white/70">{where}</span>
+              {when || where ? (
+                <div className="min-w-0 flex-1 text-sm text-black/70 dark:text-white/70">
+                  {when ? <span>{when}</span> : null}
+
+                  {when && where ? <span className="hidden min-[375px]:inline"> • </span> : null}
+
+                  {where ? (
+                    <span className={when ? 'block min-[375px]:inline' : ''}>{where}</span>
+                  ) : null}
+                </div>
               ) : null}
             </div>
           </header>
@@ -371,7 +380,7 @@ export default async function Page({ params, searchParams }: Props) {
 
             {officialUrl ? (
               <a
-                className="rounded-full border px-4 py-2 text-sm font-medium underline"
+                className="rounded-full border border-[#007AFF] bg-[#007AFF] px-3 py-1.5 text-sm font-medium text-white transition hover:border-[#0066D6] hover:bg-[#0066D6]"
                 href={officialUrl}
                 target="_blank"
                 rel="noreferrer"
@@ -382,7 +391,7 @@ export default async function Page({ params, searchParams }: Props) {
 
             {googleMapsUrl ? (
               <a
-                className="inline-flex items-center justify-center rounded-full border px-3 py-2"
+                className="inline-flex items-center justify-center rounded-full border border-[#007AFF] bg-[#007AFF] px-3 py-1.5 text-sm font-medium text-white transition hover:border-[#0066D6] hover:bg-[#0066D6]"
                 href={googleMapsUrl}
                 target="_blank"
                 rel="noreferrer"

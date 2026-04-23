@@ -3,6 +3,10 @@ import { getPayloadClient } from './payload'
 import { areLikelyDuplicateEvents, cleanString, normalizeUrl } from './discovery/dedupe'
 import type { WeekendSection } from './weekendDrop'
 import type { Event as PayloadEvent } from '@/payload-types'
+import crypto from 'node:crypto'
+import { promises as fs } from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 
 type ID = number
 
@@ -37,6 +41,7 @@ type CandidateEventDoc = {
   publishedEvent?: RelationValue
   publishedWeekendDropItem?: RelationValue
   adminNotes?: string | null
+  imageSourceUrl?: string | null
 }
 
 type VenueDoc = {
@@ -376,19 +381,22 @@ async function findMatchingExistingEvent(
   return match ?? null
 }
 
-async function getLatestWeekendDropId(payload: Payload): Promise<ID> {
+async function getLatestPublishedWeekendDropId(payload: Payload): Promise<ID> {
   const found = await payload.find({
     collection: 'weekend-drops',
+    where: {
+      _status: { equals: 'published' },
+    },
     sort: '-weekendStart',
     limit: 1,
     depth: 0,
     overrideAccess: true,
-    draft: true,
+    draft: false,
   })
 
   const latest = ((found.docs ?? [])[0] as WeekendDropDoc | undefined)?.id
   if (latest === undefined || latest === null) {
-    throw new Error('No weekend drop found. Create one first.')
+    throw new Error('No published weekend drop found. Publish one first.')
   }
 
   return latest
@@ -419,6 +427,370 @@ function appendAdminNote(existing: string | null | undefined, note: string): str
   const current = cleanString(existing)
   if (!current) return note
   return `${current}\n${note}`
+}
+
+function getImageExtensionFromContentType(contentType: string | null): string | null {
+  const normalized = contentType?.split(';')[0].trim().toLowerCase() ?? null
+
+  switch (normalized) {
+    case 'image/jpeg':
+      return '.jpg'
+    case 'image/png':
+      return '.png'
+    case 'image/webp':
+      return '.webp'
+    default:
+      return null
+  }
+}
+
+function getImageExtensionFromUrl(url: string): string | null {
+  try {
+    const pathname = new URL(url).pathname.toLowerCase()
+
+    if (pathname.endsWith('.jpg') || pathname.endsWith('.jpeg')) return '.jpg'
+    if (pathname.endsWith('.png')) return '.png'
+    if (pathname.endsWith('.webp')) return '.webp'
+
+    return null
+  } catch {
+    return null
+  }
+}
+
+async function importRemoteCandidateImageToMedia(input: {
+  payload: Payload
+  imageUrl: string | null | undefined
+  alt: string
+}): Promise<number | null> {
+  const originalImageUrl = cleanString(input.imageUrl)
+  const imageUrl = normalizeRemoteImageUrl(originalImageUrl)
+
+  if (!imageUrl) {
+    console.warn('[candidate-events] Skipping image import because imageUrl is empty', {
+      originalImageUrl,
+    })
+    return null
+  }
+
+  let tempFilePath: string | null = null
+
+  try {
+    console.info('[candidate-events] Attempting remote image import', {
+      originalImageUrl,
+      normalizedImageUrl: imageUrl,
+      alt: input.alt,
+    })
+
+    const response = await fetch(imageUrl, {
+      redirect: 'follow',
+      headers: {
+        Accept: 'image/jpeg,image/png,image/webp,image/avif,image/*;q=0.8,*/*;q=0.5',
+        'User-Agent': 'Mozilla/5.0 (compatible; MyCityWeekendsBot/1.0)',
+      },
+    })
+
+    const finalUrl = response.url
+    const contentType = response.headers.get('content-type')
+    const contentLength = response.headers.get('content-length')
+
+    console.info('[candidate-events] Remote image response received', {
+      requestedUrl: imageUrl,
+      finalUrl,
+      status: response.status,
+      ok: response.ok,
+      contentType,
+      contentLength,
+    })
+
+    if (!response.ok) {
+      console.warn('[candidate-events] Failed to download candidate image', {
+        requestedUrl: imageUrl,
+        finalUrl,
+        status: response.status,
+        contentType,
+      })
+      return null
+    }
+
+    const ext =
+      getImageExtensionFromContentType(contentType) ??
+      getImageExtensionFromUrl(finalUrl) ??
+      getImageExtensionFromUrl(imageUrl)
+
+    if (!ext) {
+      console.warn('[candidate-events] Unsupported candidate image content type', {
+        requestedUrl: imageUrl,
+        finalUrl,
+        contentType,
+      })
+      return null
+    }
+
+    const arrayBuffer = await response.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+
+    console.info('[candidate-events] Remote image downloaded', {
+      requestedUrl: imageUrl,
+      finalUrl,
+      bytes: buffer.length,
+      ext,
+    })
+
+    if (buffer.length < 5_000) {
+      console.warn('[candidate-events] Candidate image too small, skipping', {
+        requestedUrl: imageUrl,
+        finalUrl,
+        bytes: buffer.length,
+      })
+      return null
+    }
+
+    tempFilePath = path.join(os.tmpdir(), `mcw-candidate-image-${crypto.randomUUID()}${ext}`)
+    await fs.writeFile(tempFilePath, buffer)
+
+    console.info('[candidate-events] Temporary image file written', {
+      requestedUrl: imageUrl,
+      finalUrl,
+      tempFilePath,
+    })
+
+    const mediaDoc = await input.payload.create({
+      collection: 'media',
+      overrideAccess: true,
+      data: {
+        alt: input.alt,
+      },
+      filePath: tempFilePath,
+    })
+
+    const mediaId = typeof mediaDoc.id === 'number' ? mediaDoc.id : Number(mediaDoc.id)
+
+    console.info('[candidate-events] Media created from remote image', {
+      requestedUrl: imageUrl,
+      finalUrl,
+      mediaId,
+    })
+
+    return mediaId
+  } catch (error) {
+    console.warn('[candidate-events] Error importing candidate image', {
+      requestedUrl: imageUrl,
+      error,
+    })
+    return null
+  } finally {
+    if (tempFilePath) {
+      await fs.unlink(tempFilePath).catch(() => null)
+    }
+  }
+}
+
+function extractMetaImageUrl(html: string): string | null {
+  const patterns = [
+    /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["'][^>]*>/i,
+    /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["'][^>]*>/i,
+    /<link[^>]+rel=["']image_src["'][^>]+href=["']([^"']+)["'][^>]*>/i,
+    /<link[^>]+href=["']([^"']+)["'][^>]+rel=["']image_src["'][^>]*>/i,
+  ]
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern)
+    const value = match?.[1]?.trim()
+    if (value) return value
+  }
+
+  return null
+}
+
+function extractSchemaImageUrl(html: string): string | null {
+  const match = html.match(/"image"\s*:\s*"([^"]+)"/i)
+  return match?.[1]?.trim() ?? null
+}
+
+function resolveImageUrl(imageUrl: string | null, pageUrl: string): string | null {
+  if (!imageUrl) return null
+
+  try {
+    return new URL(imageUrl, pageUrl).toString()
+  } catch {
+    return null
+  }
+}
+
+function normalizeRemoteImageUrl(imageUrl: string | null | undefined): string | null {
+  const cleaned = cleanString(imageUrl)?.replace(/&amp;/g, '&') ?? null
+  if (!cleaned) return null
+
+  try {
+    const url = new URL(cleaned)
+
+    const looksNextImageProxy =
+      url.pathname.includes('/_next/image') || /\/_next\/image\/?$/.test(url.pathname)
+
+    if (looksNextImageProxy) {
+      const nestedUrl = url.searchParams.get('url')?.trim()?.replace(/&amp;/g, '&') ?? null
+      return looksLikeDirectImageAssetUrl(nestedUrl) ? nestedUrl : null
+    }
+
+    const normalized = url.toString()
+    return looksLikeDirectImageAssetUrl(normalized) ? normalized : null
+  } catch {
+    return looksLikeDirectImageAssetUrl(cleaned) ? cleaned : null
+  }
+}
+
+function looksLikeDirectImageAssetUrl(imageUrl: string | null): boolean {
+  if (!imageUrl) return false
+
+  try {
+    const url = new URL(imageUrl)
+    const pathname = url.pathname.toLowerCase()
+    const search = url.search.toLowerCase()
+    const host = url.hostname.toLowerCase()
+
+    const hasImageExtension =
+      pathname.endsWith('.jpg') ||
+      pathname.endsWith('.jpeg') ||
+      pathname.endsWith('.png') ||
+      pathname.endsWith('.webp') ||
+      pathname.endsWith('.avif')
+
+    const looksLikeImageCdnHost =
+      /img\.evbuc\.com|images\.ctfassets\.net|cdn\.|cloudfront\.net|imgix\.net|ticketmaster|tmimgs/i.test(
+        host,
+      )
+
+    const hasImageStyleQuery = /format=|fm=|auto=format|w=|q=|fit=|crop=|quality=/.test(search)
+
+    return hasImageExtension || (looksLikeImageCdnHost && hasImageStyleQuery)
+  } catch {
+    return false
+  }
+}
+
+function looksUsableImageUrl(imageUrl: string | null): boolean {
+  if (!imageUrl) return false
+  if (/logo|avatar|icon|favicon|sprite/i.test(imageUrl)) return false
+
+  return looksLikeDirectImageAssetUrl(imageUrl)
+}
+
+async function extractImageUrlFromPageForPublish(
+  pageUrl: string | null | undefined,
+): Promise<string | null> {
+  const normalizedPageUrl = cleanString(pageUrl)
+  if (!normalizedPageUrl) return null
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 8_000)
+
+  try {
+    const response = await fetch(normalizedPageUrl, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; MyCityWeekendsBot/1.0)',
+        Accept: 'text/html,application/xhtml+xml',
+      },
+      redirect: 'follow',
+    })
+
+    if (!response.ok) return null
+
+    const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
+    if (!contentType.includes('text/html')) return null
+
+    const html = await response.text()
+
+    const metaImage = resolveImageUrl(extractMetaImageUrl(html), normalizedPageUrl)
+    if (looksUsableImageUrl(metaImage)) return metaImage
+
+    const schemaImage = resolveImageUrl(extractSchemaImageUrl(html), normalizedPageUrl)
+    if (looksUsableImageUrl(schemaImage)) return schemaImage
+
+    return null
+  } catch {
+    return null
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+async function importBestCandidateImageToMedia(input: {
+  payload: Payload
+  imageUrl: string | null | undefined
+  sourceUrl: string | null | undefined
+  ticketUrl: string | null | undefined
+  alt: string
+}): Promise<number | null> {
+  const directImageUrl = normalizeRemoteImageUrl(input.imageUrl)
+  const sourcePageImageUrl = normalizeRemoteImageUrl(
+    await extractImageUrlFromPageForPublish(input.sourceUrl),
+  )
+  const ticketPageImageUrl = normalizeRemoteImageUrl(
+    await extractImageUrlFromPageForPublish(input.ticketUrl),
+  )
+
+  const candidates = [directImageUrl, sourcePageImageUrl, ticketPageImageUrl].filter(
+    (value): value is string => Boolean(value),
+  )
+
+  const uniqueUrls = Array.from(new Set(candidates))
+
+  console.info('[candidate-events] Candidate image import sources resolved', {
+    directImageUrl,
+    sourceUrl: cleanString(input.sourceUrl),
+    sourcePageImageUrl,
+    ticketUrl: cleanString(input.ticketUrl),
+    ticketPageImageUrl,
+    totalUniqueUrls: uniqueUrls.length,
+    rejectedDirectImageUrl:
+      cleanString(input.imageUrl) && !directImageUrl ? cleanString(input.imageUrl) : null,
+  })
+
+  for (const imageUrl of uniqueUrls) {
+    console.info('[candidate-events] Trying candidate image URL', {
+      imageUrl,
+    })
+
+    const importedImageId = await importRemoteCandidateImageToMedia({
+      payload: input.payload,
+      imageUrl,
+      alt: input.alt,
+    })
+
+    if (importedImageId) {
+      console.info('[candidate-events] Candidate image import succeeded', {
+        imageUrl,
+        mediaId: importedImageId,
+      })
+      return importedImageId
+    }
+
+    console.warn('[candidate-events] Candidate image import attempt failed', {
+      imageUrl,
+    })
+  }
+
+  console.warn('[candidate-events] No candidate image source could be imported', {
+    directImageUrl,
+    sourceUrl: cleanString(input.sourceUrl),
+    ticketUrl: cleanString(input.ticketUrl),
+  })
+
+  return null
+}
+
+type WritableWeekendSection = 'top3' | 'free' | 'under30'
+
+function normalizeLegacyWeekendSection(
+  section: WeekendSection | null | undefined,
+): WritableWeekendSection | undefined {
+  if (!section) return undefined
+  if (section === 'under15') return 'under30'
+  return section
 }
 
 export async function createDraftEventFromCandidate(candidateId: ID): Promise<CreateDraftResult> {
@@ -505,7 +877,7 @@ export async function publishCandidateEvent(
 
   const venueId = await upsertVenueFromCandidate(payload, candidate)
 
-  const createdEvent = await payload.create({
+  let createdEvent = await payload.create({
     collection: 'events',
     data: buildPublishedEventData(candidate, venueId),
     overrideAccess: true,
@@ -516,7 +888,9 @@ export async function publishCandidateEvent(
   let weekendDropItemId: ID | undefined
 
   if (attachToWeekendDrop) {
-    const section = options.section ?? candidate.sectionSuggestion
+    const rawSection = options.section ?? candidate.sectionSuggestion
+    const section = normalizeLegacyWeekendSection(rawSection)
+
     if (!section) {
       throw new Error('No section provided and candidate has no sectionSuggestion.')
     }
@@ -526,7 +900,7 @@ export async function publishCandidateEvent(
       throw new Error('No whyWorthIt provided and candidate has no whyWorthItDraft.')
     }
 
-    const weekendDropId = options.weekendDropId ?? (await getLatestWeekendDropId(payload))
+    const weekendDropId = options.weekendDropId ?? (await getLatestPublishedWeekendDropId(payload))
     const rank =
       options.rank ??
       candidate.rankSuggestion ??
@@ -544,14 +918,65 @@ export async function publishCandidateEvent(
       overrideAccess: true,
     })
 
+    let importedImageId: number | null = null
+    let imageImportFailed = false
+
+    try {
+      console.info('[candidate-events] Starting image attach during publish', {
+        candidateId: candidate.id,
+        title: cleanString(candidate.title) ?? null,
+        imageSourceUrl: cleanString(candidate.imageSourceUrl) ?? null,
+        sourceUrl: cleanString(candidate.sourceUrl) ?? null,
+        ticketUrl: cleanString(candidate.ticketUrl) ?? null,
+      })
+
+      importedImageId = await importBestCandidateImageToMedia({
+        payload,
+        imageUrl: candidate.imageSourceUrl,
+        sourceUrl: candidate.sourceUrl,
+        ticketUrl: candidate.ticketUrl,
+        alt: cleanString(candidate.title) ?? 'Event image',
+      })
+    } catch (error) {
+      imageImportFailed = true
+
+      console.warn('[candidate-events] Unexpected image attach error during publish', {
+        candidateId: candidate.id,
+        error,
+      })
+    }
+
+    if (importedImageId) {
+      createdEvent = await payload.update({
+        collection: 'events',
+        id: createdEvent.id,
+        overrideAccess: true,
+        data: {
+          image: importedImageId,
+        },
+      })
+    } else if (imageImportFailed || cleanString(candidate.imageSourceUrl)) {
+      await payload.update({
+        collection: 'candidate-events',
+        id: candidate.id,
+        overrideAccess: true,
+        data: {
+          adminNotes: appendAdminNote(candidate.adminNotes, 'Image import failed during publish.'),
+        },
+      })
+    }
     weekendDropItemId = createdDropItem.id
   }
+
+  const normalizedSectionSuggestion =
+    normalizeLegacyWeekendSection(candidate.sectionSuggestion) ?? null
 
   await payload.update({
     collection: 'candidate-events',
     id: candidate.id,
     data: {
       status: 'published',
+      sectionSuggestion: normalizedSectionSuggestion,
       publishedEvent: createdEvent.id,
       publishedWeekendDropItem: weekendDropItemId ?? null,
       adminNotes: appendAdminNote(

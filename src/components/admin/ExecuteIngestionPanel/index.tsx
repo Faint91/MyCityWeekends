@@ -110,6 +110,14 @@ export default function ExecuteIngestionPanel() {
               <div>Found: {result.found}</div>
               <div>Inserted: {result.inserted}</div>
               <div>Duplicates: {result.duplicates}</div>
+              <div>Free: {result.qualitySummary.freeCount}</div>
+              <div>Under $30: {result.qualitySummary.under30Count}</div>
+              <div>Known price: {result.qualitySummary.pricedCount}</div>
+              <div>Missing price: {result.qualitySummary.missingPriceCount}</div>
+              <div>Free refill used: {result.qualitySummary.refillFreeUsed ? 'Yes' : 'No'}</div>
+              <div>
+                Under $30 refill used: {result.qualitySummary.refillUnder30Used ? 'Yes' : 'No'}
+              </div>
             </div>
 
             <div style={{ marginTop: 12 }}>

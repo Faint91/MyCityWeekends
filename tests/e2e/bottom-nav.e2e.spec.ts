@@ -49,9 +49,15 @@ test.describe('Bottom nav (mobile)', () => {
     await expect(page.getByRole('heading', { level: 1, name: /^Saved$/ })).toBeVisible()
 
     await Promise.all([
-      await nav.getByRole('link', { name: /under \$15/i }).click(),
-      await expect(page).toHaveURL(/\/under-15\/?$/),
+      await nav.getByRole('link', { name: /under \$30/i }).click(),
+      await expect(page).toHaveURL(/\/under-30\/?$/),
     ])
-    await expect(page.getByRole('heading', { level: 1, name: /^Under \$15$/i })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: /^Under \$30$/i })).toBeVisible()
+  })
+
+  test('legacy /under-15 redirects to /under-30', async ({ page }) => {
+    await page.goto('/under-15')
+    await expect(page).toHaveURL(/\/under-30\/?$/)
+    await expect(page.getByRole('heading', { level: 1, name: /^Under \$30$/i })).toBeVisible()
   })
 })

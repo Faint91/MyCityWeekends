@@ -33,13 +33,13 @@ export function SaveToggleButton({ slug }: { slug: string }) {
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200 ${
-        saved ? 'border-yellow-400/50 bg-yellow-400/8' : ''
+      className={`rounded-full border px-3 py-1.5 text-sm font-medium text-white transition-all duration-200 ${
+        saved ? 'border-[#0066D6] bg-[#0066D6]' : 'border-[#007AFF] bg-[#007AFF]'
       } ${
         justSaved
-          ? 'scale-[1.01] shadow-[0_0_0_2px_rgba(250,204,21,0.10),0_0_6px_rgba(250,204,21,0.18)]'
+          ? 'scale-[1.01] shadow-[0_0_0_2px_rgba(0,122,255,0.14),0_0_8px_rgba(0,122,255,0.22)]'
           : ''
-      }`}
+      } hover:border-[#0066D6] hover:bg-[#0066D6]`}
       aria-label={saved ? 'Unsave event' : 'Save event'}
       data-testid="save-toggle"
     >

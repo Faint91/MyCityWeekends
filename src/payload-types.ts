@@ -395,7 +395,10 @@ export interface WeekendDropItem {
   id: number;
   weekendDrop: number | WeekendDrop;
   event: number | Event;
-  section: 'top3' | 'free' | 'under15' | 'under30';
+  /**
+   * Budget picks are saved as Under $30.
+   */
+  section: 'top3' | 'free' | 'under30';
   rank: number;
   whyWorthIt: string;
   updatedAt: string;
@@ -435,7 +438,10 @@ export interface CandidateEvent {
   ticketUrl?: string | null;
   imageSourceUrl?: string | null;
   whyWorthItDraft?: string | null;
-  sectionSuggestion?: ('top3' | 'free' | 'under15' | 'under30') | null;
+  /**
+   * Budget picks are saved as Under $30.
+   */
+  sectionSuggestion?: ('top3' | 'free' | 'under30') | null;
   rankSuggestion?: number | null;
   status: 'new' | 'shortlisted' | 'draft_created' | 'rejected' | 'duplicate' | 'published';
   discoveredAt?: string | null;
@@ -472,6 +478,12 @@ export interface IngestionRun {
   candidateCount?: number | null;
   insertedCount?: number | null;
   duplicateCount?: number | null;
+  freeCount?: number | null;
+  under30Count?: number | null;
+  pricedCount?: number | null;
+  missingPriceCount?: number | null;
+  refillFreeUsed?: boolean | null;
+  refillUnder30Used?: boolean | null;
   errorSummary?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -1045,6 +1057,12 @@ export interface IngestionRunsSelect<T extends boolean = true> {
   candidateCount?: T;
   insertedCount?: T;
   duplicateCount?: T;
+  freeCount?: T;
+  under30Count?: T;
+  pricedCount?: T;
+  missingPriceCount?: T;
+  refillFreeUsed?: T;
+  refillUnder30Used?: T;
   errorSummary?: T;
   updatedAt?: T;
   createdAt?: T;

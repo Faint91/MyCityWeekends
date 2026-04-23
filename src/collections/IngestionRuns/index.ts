@@ -15,8 +15,10 @@ export const IngestionRuns: CollectionConfig = {
       'status',
       'city',
       'weekendStart',
-      'weekendEnd',
       'candidateCount',
+      'freeCount',
+      'under30Count',
+      'missingPriceCount',
       'insertedCount',
       'duplicateCount',
       'updatedAt',
@@ -83,6 +85,58 @@ export const IngestionRuns: CollectionConfig = {
       type: 'number',
       min: 0,
       defaultValue: 0,
+    },
+    {
+      name: 'freeCount',
+      type: 'number',
+      min: 0,
+      defaultValue: 0,
+      admin: {
+        readOnly: true,
+      },
+    },
+    {
+      name: 'under30Count',
+      type: 'number',
+      min: 0,
+      defaultValue: 0,
+      admin: {
+        readOnly: true,
+      },
+    },
+    {
+      name: 'pricedCount',
+      type: 'number',
+      min: 0,
+      defaultValue: 0,
+      admin: {
+        readOnly: true,
+      },
+    },
+    {
+      name: 'missingPriceCount',
+      type: 'number',
+      min: 0,
+      defaultValue: 0,
+      admin: {
+        readOnly: true,
+      },
+    },
+    {
+      name: 'refillFreeUsed',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        readOnly: true,
+      },
+    },
+    {
+      name: 'refillUnder30Used',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        readOnly: true,
+      },
     },
     {
       name: 'errorSummary',

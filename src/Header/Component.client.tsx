@@ -28,11 +28,10 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
 
   return (
     <header className="container relative z-20" {...(theme ? { 'data-theme': theme } : {})}>
-      <div className="flex flex-col gap-3 pt-5 pb-1 md:gap-4 md:pt-6 md:pb-2">
+      <div className="mcw-header-glow flex flex-col gap-3 pt-5 pb-1 md:gap-4 md:pt-6 md:pb-2">
         <Link href="/" className="block w-full max-w-[760px]">
           <div className="w-full">
             <Logo
-              loading="eager"
               priority={true}
               sizes="(min-width: 1280px) 760px, (min-width: 768px) 62vw, 92vw"
             />

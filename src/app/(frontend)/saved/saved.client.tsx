@@ -49,14 +49,28 @@ function formatPrice(e: EventDoc): string | null {
 
 function formatWhen(startAt?: string | null): string | null {
   if (!startAt) return null
-  return new Intl.DateTimeFormat('en-CA', {
+
+  const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Vancouver',
     weekday: 'short',
     month: 'short',
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
-  }).format(new Date(startAt))
+    hour12: true,
+  }).formatToParts(new Date(startAt))
+
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? ''
+
+  return [
+    get('weekday'),
+    get('month'),
+    get('day'),
+    `${get('hour')}:${get('minute')} ${get('dayPeriod').replace(/\./g, '').toLowerCase()}`,
+  ]
+    .filter(Boolean)
+    .join(' ')
 }
 
 async function fetchEventsBySlugs(slugs: string[]): Promise<EventDoc[]> {
