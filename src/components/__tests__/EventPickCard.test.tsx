@@ -17,12 +17,13 @@ describe('EventPickCard', () => {
     render(
       <EventPickCard
         rank={1}
-        title="Free Comedy Night"
-        when="Fri, Mar 7 • 8:00 PM"
-        where="Granville Island"
-        price="Free"
-        whyWorthIt="Great vibe."
-        detailsUrl="https://example.com"
+        title="..."
+        when="..."
+        where="..."
+        price="..."
+        whyWorthIt="..."
+        internalHref="/event/test-event"
+        backHref="/"
       />,
     )
 
