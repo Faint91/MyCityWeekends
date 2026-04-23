@@ -221,7 +221,6 @@ export default function SavedPageClient() {
   return (
     <div className="space-y-3">
       {ordered.map((event) => {
-        const detailsUrl = (event.ticketUrl ?? event.sourceUrl) as string | undefined
         const isRemoving = event.slug ? removingSlugs.includes(event.slug) : false
 
         return (

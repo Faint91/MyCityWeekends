@@ -83,8 +83,6 @@ export default async function WeekendPage() {
                 const price = formatPrice(event)
                 const when = formatWhen(event.startAt)
 
-                const detailsUrl = (event.ticketUrl ?? event.sourceUrl) as string | undefined
-
                 return (
                   <EventPickCard
                     key={item.id}

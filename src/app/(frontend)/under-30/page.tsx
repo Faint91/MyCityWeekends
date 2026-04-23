@@ -78,7 +78,6 @@ export default async function Under30Page() {
 
               const price = formatPrice(event)
               const when = formatWhen(event.startAt)
-              const detailsUrl = (event.ticketUrl ?? event.sourceUrl) as string | undefined
 
               return (
                 <EventPickCard
