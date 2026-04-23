@@ -115,6 +115,7 @@ export function EventPickCard({
             {eventHref ? (
               <Link
                 href={eventHref}
+                aria-label="Event details"
                 className="whitespace-nowrap rounded-full border border-[#007AFF] bg-[#007AFF] px-3 py-1.5 text-sm font-medium text-white transition hover:border-[#0066D6] hover:bg-[#0066D6]"
                 onClick={() =>
                   trackEvent('open_event_page', { href: eventHref, source: 'card_button' })

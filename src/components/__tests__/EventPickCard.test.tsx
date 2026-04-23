@@ -13,15 +13,15 @@ vi.mock('next/image', () => ({
 }))
 
 describe('EventPickCard', () => {
-  it('renders title, price, and details link', () => {
+  it('renders title, price, and event details link', () => {
     render(
       <EventPickCard
         rank={1}
-        title="..."
-        when="..."
-        where="..."
-        price="..."
-        whyWorthIt="..."
+        title="Free Comedy Night"
+        when="Sat Apr 25 11:00 am"
+        where="Gastown"
+        price="Free"
+        whyWorthIt="A fun stand-up show."
         internalHref="/event/test-event"
         backHref="/"
       />,
@@ -30,9 +30,9 @@ describe('EventPickCard', () => {
     expect(screen.queryByText('#1')).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Free Comedy Night' })).toBeInTheDocument()
     expect(screen.getByText('Free')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /official link/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /event details/i })).toHaveAttribute(
       'href',
-      'https://example.com',
+      '/event/test-event?back=%2F',
     )
   })
 
