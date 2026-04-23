@@ -237,7 +237,6 @@ export default function SavedPageClient() {
               when={formatWhen(event.startAt)}
               where={event.neighborhood ?? null}
               price={formatPrice(event)}
-              detailsUrl={detailsUrl ?? null}
               saveSlug={event.slug ?? null}
               image={event.image && typeof event.image === 'object' ? event.image : null}
               backHref="/saved"

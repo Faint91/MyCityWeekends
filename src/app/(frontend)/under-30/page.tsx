@@ -89,7 +89,6 @@ export default async function Under30Page() {
                   where={event.neighborhood ?? null}
                   price={price}
                   whyWorthIt={item.whyWorthIt ?? null}
-                  detailsUrl={detailsUrl ?? null}
                   internalHref={event.slug ? `/event/${event.slug}` : null}
                   saveSlug={event.slug ?? null}
                   image={event.image && typeof event.image === 'object' ? event.image : null}

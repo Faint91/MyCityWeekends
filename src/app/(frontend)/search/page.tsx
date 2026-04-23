@@ -72,7 +72,6 @@ export default async function SearchPage({ searchParams: searchParamsPromise }: 
                 where={event.neighborhood ?? null}
                 price={formatPrice(event)}
                 whyWorthIt={event.description ?? null}
-                detailsUrl={event.ticketUrl ?? event.sourceUrl ?? null}
                 internalHref={event.slug ? `/event/${event.slug}` : null}
                 saveSlug={event.slug ?? null}
                 image={event.image && typeof event.image === 'object' ? event.image : null}
