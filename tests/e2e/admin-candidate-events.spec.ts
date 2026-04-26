@@ -60,7 +60,7 @@ test.describe('Candidate Events admin actions', () => {
   test('Admin Panel › can publish a candidate event', async ({ page }) => {
     test.setTimeout(120_000)
 
-    const seeded = await seedPublishableCandidateScenario()
+    const seeded = await seedPublishableCandidateScenarioWithPublishedAndDraft()
 
     try {
       await page.goto(`/admin/collections/candidate-events/${seeded.candidateId}`, {
@@ -114,7 +114,10 @@ test.describe('Candidate Events admin actions', () => {
       expect(createdDropItem.section).toBe(seeded.sectionSuggestion)
       expect(createdDropItem.whyWorthIt).toBe(seeded.whyWorthItDraft)
     } finally {
-      await cleanupCandidateEventArtifacts(seeded)
+      await cleanupCandidateEventArtifacts({
+        ...seeded,
+        weekendDropId: seeded.publishedWeekendDropId,
+      })
     }
   })
 
@@ -174,7 +177,7 @@ test.describe('Candidate Events admin actions', () => {
   }) => {
     test.setTimeout(120_000)
 
-    const seeded = await seedPublishableCandidateScenario()
+    const seeded = await seedPublishableCandidateScenarioWithPublishedAndDraft()
 
     try {
       // Keep the seed simple, then switch it to the legacy budget value before publishing
@@ -230,7 +233,10 @@ test.describe('Candidate Events admin actions', () => {
       expect(createdDropItem).not.toBeNull()
       expect(createdDropItem.section).toBe('under30')
     } finally {
-      await cleanupCandidateEventArtifacts(seeded)
+      await cleanupCandidateEventArtifacts({
+        ...seeded,
+        weekendDropId: seeded.publishedWeekendDropId,
+      })
     }
   })
 })
