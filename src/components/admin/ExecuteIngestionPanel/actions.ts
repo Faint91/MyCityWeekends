@@ -1,17 +1,40 @@
 'use server'
 
-import { runDiscoveryIngestion } from '@/lib/discovery/runDiscoveryIngestion'
+import { getPayloadClient } from '@/lib/payload'
+import { dryRunKickoffDiscoveryIngestion } from '@/lib/discovery/dryRunKickoffDiscoveryIngestion'
+import { createVercelIngestionQueuePublisher } from '@/lib/discovery/vercelIngestionQueuePublisher'
+
+export type ExecuteIngestionQueuedResult = Awaited<
+  ReturnType<typeof dryRunKickoffDiscoveryIngestion>
+>
 
 export async function executeIngestionAction(input?: {
   source?: 'mock' | 'openai_web'
   city?: string
 }) {
   try {
-    const result = await runDiscoveryIngestion({
-      source: input?.source ?? 'openai_web',
-      city: input?.city ?? 'Vancouver, BC',
-      trigger: 'admin',
-    })
+    const result = await dryRunKickoffDiscoveryIngestion(
+      {
+        source: input?.source ?? 'openai_web',
+        city: input?.city ?? 'Vancouver, BC',
+        trigger: 'admin',
+      },
+      {
+        createIngestionRun: async (args) => {
+          const payload = await getPayloadClient()
+
+          return payload.create({
+            collection: 'ingestion-runs',
+            overrideAccess: true,
+            data: args,
+          })
+        },
+        publisher: createVercelIngestionQueuePublisher(),
+        publishMode: 'first',
+        previewOnly: false,
+        promptVersion: 'queue-kickoff-v1',
+      },
+    )
 
     return {
       ok: true as const,
@@ -20,7 +43,7 @@ export async function executeIngestionAction(input?: {
   } catch (error) {
     return {
       ok: false as const,
-      error: error instanceof Error ? error.message : 'Unknown ingestion error.',
+      error: error instanceof Error ? error.message : 'Unknown ingestion queue kickoff error.',
     }
   }
 }

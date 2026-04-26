@@ -2,13 +2,12 @@
 
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
-import { executeIngestionAction } from './actions'
-import type { DiscoverCandidateEventsResult } from '@/lib/discovery/types'
+import { executeIngestionAction, type ExecuteIngestionQueuedResult } from './actions'
 
 export default function ExecuteIngestionPanel() {
   const [isPending, startTransition] = useTransition()
   const [source, setSource] = useState<'mock' | 'openai_web'>('openai_web')
-  const [result, setResult] = useState<DiscoverCandidateEventsResult | null>(null)
+  const [result, setResult] = useState<ExecuteIngestionQueuedResult | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   return (
@@ -64,7 +63,7 @@ export default function ExecuteIngestionPanel() {
               })
             }
           >
-            {isPending ? 'Running...' : 'Execute Ingestion'}
+            {isPending ? 'Queueing...' : 'Execute Ingestion'}
           </button>
 
           <Link
@@ -102,25 +101,41 @@ export default function ExecuteIngestionPanel() {
               border: '1px solid var(--theme-elevation-200)',
             }}
           >
-            <strong>Ingestion completed.</strong>
+            <strong>Ingestion queued.</strong>
+            <p style={{ margin: '8px 0 0 0' }}>
+              Discovery is running in the background. Refresh the ingestion run after a few minutes
+              to check whether it succeeded.
+            </p>
+
             <div style={{ marginTop: 8 }}>
-              <div>Source: {result.source}</div>
-              <div>City: {result.city}</div>
+              <div>Source: {result.run.source}</div>
+              <div>City: {result.run.city}</div>
               <div>Run ID: {result.runId}</div>
-              <div>Found: {result.found}</div>
-              <div>Inserted: {result.inserted}</div>
-              <div>Duplicates: {result.duplicates}</div>
-              <div>Free: {result.qualitySummary.freeCount}</div>
-              <div>Under $30: {result.qualitySummary.under30Count}</div>
-              <div>Known price: {result.qualitySummary.pricedCount}</div>
-              <div>Missing price: {result.qualitySummary.missingPriceCount}</div>
-              <div>Free refill used: {result.qualitySummary.refillFreeUsed ? 'Yes' : 'No'}</div>
+              <div>Parent ingestion run ID: {result.persistedRun.id}</div>
+              <div>Initial status: {result.persistedRun.status}</div>
+              <div>Requested sections: {result.plan.sections.join(', ')}</div>
               <div>
-                Under $30 refill used: {result.qualitySummary.refillUnder30Used ? 'Yes' : 'No'}
+                Queued first section: {result.publishedQueueMessages[0]?.job.section ?? 'None'}
               </div>
+              <div>Queue messages prepared: {result.queueMessages.length}</div>
+              <div>Queue messages published now: {result.publishResult.published}</div>
             </div>
 
-            <div style={{ marginTop: 12 }}>
+            <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <Link
+                href={`/admin/collections/ingestion-runs/${result.persistedRun.id}`}
+                style={{
+                  display: 'inline-block',
+                  padding: '8px 12px',
+                  border: '1px solid var(--theme-elevation-200)',
+                  borderRadius: 6,
+                  textDecoration: 'none',
+                  color: 'inherit',
+                }}
+              >
+                Open Ingestion Run
+              </Link>
+
               <Link
                 href="/admin/collections/candidate-events"
                 style={{
