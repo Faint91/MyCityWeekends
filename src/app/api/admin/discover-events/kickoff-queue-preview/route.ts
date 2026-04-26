@@ -67,7 +67,5 @@ export async function POST(req: NextRequest) {
     mode: 'queue_kickoff_preview',
     queuePublishing: publishToQueue ? 'vercel_queue' : 'noop',
     result,
-    queueMessages: result.queueMessages,
-    publishResult: result.publishResult,
   })
 }
