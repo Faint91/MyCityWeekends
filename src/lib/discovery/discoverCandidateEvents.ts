@@ -279,7 +279,11 @@ function getNextWeekendWindow(): { weekendStart: string; weekendEnd: string } {
   }
 }
 
-function getMockDiscoveryCandidates(city: string, weekendStart: string): DiscoveryProviderResult {
+function getMockDiscoveryCandidates(
+  city: string,
+  weekendStart: string,
+  section?: DiscoverCandidateEventsInput['section'],
+): DiscoveryProviderResult {
   const weekendDate = new Date(weekendStart)
   const saturday = new Date(weekendDate)
   saturday.setUTCDate(weekendDate.getUTCDate() + 1)
@@ -307,84 +311,93 @@ function getMockDiscoveryCandidates(city: string, weekendStart: string): Discove
   const weekendEnd = new Date(weekendDate)
   weekendEnd.setUTCDate(weekendDate.getUTCDate() + 3)
 
+  const candidates: DiscoveredCandidate[] = [
+    {
+      title: 'Sunset Food Truck Social',
+      city,
+      description:
+        'Casual waterfront food truck meetup with local vendors and live acoustic music.',
+      startAt: saturday18.toISOString(),
+      endAt: saturday20.toISOString(),
+      isFree: true,
+      venueName: 'Canada Place',
+      venueAddress: '999 Canada Pl, Vancouver, BC',
+      neighborhood: 'Downtown',
+      indoorOutdoor: 'outdoor',
+      tags: ['food', 'community', 'music'],
+      sourceName: 'Mock Discovery Feed',
+      sourceUrl: 'https://example.com/mock/sunset-food-truck-social',
+      ticketUrl: 'https://example.com/mock/sunset-food-truck-social',
+      whyWorthItDraft: 'Easy downtown plan with food, views, and a low-friction social vibe.',
+      sectionSuggestion: 'free',
+      confidenceScore: 92,
+    },
+    {
+      title: 'Indie Comedy Basement Night',
+      city,
+      description: 'Stand-up showcase with local comics in a small-room venue.',
+      startAt: sunday19.toISOString(),
+      endAt: sunday22.toISOString(),
+      isFree: false,
+      priceMin: 18,
+      priceMax: 24,
+      currency: 'CAD',
+      venueName: 'Granville Basement Theatre',
+      venueAddress: '850 Granville St, Vancouver, BC',
+      neighborhood: 'Granville',
+      indoorOutdoor: 'indoor',
+      tags: ['comedy', 'nightlife'],
+      sourceName: 'Mock Discovery Feed',
+      sourceUrl: 'https://example.com/mock/indie-comedy-basement-night',
+      ticketUrl: 'https://example.com/mock/indie-comedy-basement-night',
+      whyWorthItDraft: 'Budget night-out option that still feels like a real plan.',
+      sectionSuggestion: 'under30',
+      confidenceScore: 88,
+    },
+    {
+      title: 'Makers Market Pop-Up',
+      city,
+      description: 'Weekend market with local art, prints, ceramics, and gifts.',
+      startAt: saturday11.toISOString(),
+      endAt: saturday15.toISOString(),
+      isFree: true,
+      venueName: 'Mount Pleasant Community Hall',
+      venueAddress: '1 Kingsway, Vancouver, BC',
+      neighborhood: 'Mount Pleasant',
+      indoorOutdoor: 'indoor',
+      tags: ['market', 'art', 'community'],
+      sourceName: 'Mock Discovery Feed',
+      sourceUrl: 'https://example.com/mock/makers-market-pop-up',
+      ticketUrl: 'https://example.com/mock/makers-market-pop-up',
+      whyWorthItDraft: 'Strong daytime browse option that fits the site vibe well.',
+      sectionSuggestion: 'top3',
+      confidenceScore: 90,
+    },
+  ]
+
+  const sectionCandidates = section
+    ? candidates.filter((candidate) => candidate.sectionSuggestion === section)
+    : candidates
+
   return {
     source: 'mock',
     city,
     weekendStart,
     weekendEnd: weekendEnd.toISOString(),
-    promptVersion: 'mock-v1',
+    promptVersion: section ? `mock-v1-${section}` : 'mock-v1',
     model: 'mock-provider',
-    rawQuerySummary: `Mock discovery candidates for ${city} for weekend starting ${weekendStart}.`,
-    candidates: [
-      {
-        title: 'Sunset Food Truck Social',
-        city,
-        description:
-          'Casual waterfront food truck meetup with local vendors and live acoustic music.',
-        startAt: saturday18.toISOString(),
-        endAt: saturday20.toISOString(),
-        isFree: true,
-        venueName: 'Canada Place',
-        venueAddress: '999 Canada Pl, Vancouver, BC',
-        neighborhood: 'Downtown',
-        indoorOutdoor: 'outdoor',
-        tags: ['food', 'community', 'music'],
-        sourceName: 'Mock Discovery Feed',
-        sourceUrl: 'https://example.com/mock/sunset-food-truck-social',
-        ticketUrl: 'https://example.com/mock/sunset-food-truck-social',
-        whyWorthItDraft: 'Easy downtown plan with food, views, and a low-friction social vibe.',
-        sectionSuggestion: 'free',
-        confidenceScore: 92,
-      },
-      {
-        title: 'Indie Comedy Basement Night',
-        city,
-        description: 'Stand-up showcase with local comics in a small-room venue.',
-        startAt: sunday19.toISOString(),
-        endAt: sunday22.toISOString(),
-        isFree: false,
-        priceMin: 18,
-        priceMax: 24,
-        currency: 'CAD',
-        venueName: 'Granville Basement Theatre',
-        venueAddress: '850 Granville St, Vancouver, BC',
-        neighborhood: 'Granville',
-        indoorOutdoor: 'indoor',
-        tags: ['comedy', 'nightlife'],
-        sourceName: 'Mock Discovery Feed',
-        sourceUrl: 'https://example.com/mock/indie-comedy-basement-night',
-        ticketUrl: 'https://example.com/mock/indie-comedy-basement-night',
-        whyWorthItDraft: 'Budget night-out option that still feels like a real plan.',
-        sectionSuggestion: 'under30',
-        confidenceScore: 88,
-      },
-      {
-        title: 'Makers Market Pop-Up',
-        city,
-        description: 'Weekend market with local art, prints, ceramics, and gifts.',
-        startAt: saturday11.toISOString(),
-        endAt: saturday15.toISOString(),
-        isFree: true,
-        venueName: 'Mount Pleasant Community Hall',
-        venueAddress: '1 Kingsway, Vancouver, BC',
-        neighborhood: 'Mount Pleasant',
-        indoorOutdoor: 'indoor',
-        tags: ['market', 'art', 'community'],
-        sourceName: 'Mock Discovery Feed',
-        sourceUrl: 'https://example.com/mock/makers-market-pop-up',
-        ticketUrl: 'https://example.com/mock/makers-market-pop-up',
-        whyWorthItDraft: 'Strong daytime browse option that fits the site vibe well.',
-        sectionSuggestion: 'top3',
-        confidenceScore: 90,
-      },
-    ],
+    rawQuerySummary: section
+      ? `Mock ${section} discovery candidates for ${city} for weekend starting ${weekendStart}.`
+      : `Mock discovery candidates for ${city} for weekend starting ${weekendStart}.`,
+    candidates: sectionCandidates,
   }
 }
 
 async function getProviderResult(
   input: Required<
     Pick<DiscoverCandidateEventsInput, 'source' | 'city' | 'weekendStart' | 'weekendEnd'>
-  >,
+  > &
+    Pick<DiscoverCandidateEventsInput, 'section'>,
 ): Promise<DiscoveryProviderResult> {
   switch (input.source) {
     case 'openai_web':
@@ -396,7 +409,7 @@ async function getProviderResult(
 
     case 'mock':
     default:
-      return getMockDiscoveryCandidates(input.city, input.weekendStart)
+      return getMockDiscoveryCandidates(input.city, input.weekendStart, input.section)
   }
 }
 
@@ -633,6 +646,7 @@ export async function discoverCandidateEvents(
   const city = cleanString(input.city) ?? 'Vancouver, BC'
   const weekendStart = cleanString(input.weekendStart) ?? weekendWindow.weekendStart
   const weekendEnd = cleanString(input.weekendEnd) ?? weekendWindow.weekendEnd
+  const section = input.section
   const weekendDrop = await ensureWeekendDrop(payload, {
     city: city,
     weekendStart: weekendStart,
@@ -669,6 +683,7 @@ export async function discoverCandidateEvents(
       city,
       weekendStart,
       weekendEnd,
+      section,
     })
 
     const qualitySummary = buildDiscoveryQualitySummary(provider)

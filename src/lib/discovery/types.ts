@@ -1,4 +1,5 @@
 import type { WeekendSection } from '@/lib/weekendDrop'
+import type { IngestionSection } from './ingestionSections'
 
 export type DiscoverySource = 'mock' | 'openai_web'
 
@@ -55,6 +56,7 @@ export type DiscoverCandidateEventsInput = {
   city?: string
   weekendStart?: string
   weekendEnd?: string
+  section?: IngestionSection
 }
 
 export type DiscoverCandidateEventsResult = {

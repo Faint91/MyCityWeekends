@@ -1,0 +1,12 @@
+{
+  "functions": {
+    "src/app/api/queues/ingestion/route.ts": {
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "mycityweekends-ingestion"
+        }
+      ]
+    }
+  }
+}

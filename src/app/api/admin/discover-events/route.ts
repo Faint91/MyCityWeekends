@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { discoverCandidateEvents } from '@/lib/discovery/discoverCandidateEvents'
+import { runDiscoveryIngestion } from '@/lib/discovery/runDiscoveryIngestion'
 
 function isAuthorized(req: NextRequest): boolean {
   const secret = process.env.ADMIN_DISCOVERY_SECRET
@@ -35,11 +35,12 @@ export async function POST(req: NextRequest) {
       city: body.city ?? 'Vancouver, BC',
     })
 
-    const result = await discoverCandidateEvents({
+    const result = await runDiscoveryIngestion({
       city: body.city,
       weekendStart: body.weekendStart,
       weekendEnd: body.weekendEnd,
       source: body.source ?? 'mock',
+      trigger: 'api',
     })
 
     console.log('[discover-events] Request completed', result)
