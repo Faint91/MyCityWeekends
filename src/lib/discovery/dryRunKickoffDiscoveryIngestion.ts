@@ -23,6 +23,7 @@ type CreateIngestionRunResult = Awaited<
 
 export type DryRunKickoffDiscoveryIngestionResult = PersistKickoffDiscoveryIngestionResult & {
   queueMessages: IngestionSectionJobQueueMessage[]
+  publishedQueueMessages: IngestionSectionJobQueueMessage[]
   publishResult: PublishIngestionQueueMessagesResult
 }
 
@@ -31,6 +32,7 @@ type DryRunKickoffDiscoveryIngestionOptions = {
   now?: () => string
   createIngestionRun: (args: CreateIngestionRunArgs) => Promise<CreateIngestionRunResult>
   publisher?: IngestionQueuePublisher
+  publishMode?: 'all' | 'first'
 }
 
 export async function dryRunKickoffDiscoveryIngestion(
@@ -45,11 +47,15 @@ export async function dryRunKickoffDiscoveryIngestion(
 
   const queueMessages = buildIngestionSectionJobQueueMessages(persisted.persistedJobs)
   const publisher = options.publisher ?? noopIngestionQueuePublisher
-  const publishResult = await publisher.publish(queueMessages)
+  const publishedQueueMessages =
+    options.publishMode === 'first' ? queueMessages.slice(0, 1) : queueMessages
+
+  const publishResult = await publisher.publish(publishedQueueMessages)
 
   return {
     ...persisted,
     queueMessages,
+    publishedQueueMessages,
     publishResult,
   }
 }
