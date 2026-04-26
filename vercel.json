@@ -4,7 +4,8 @@
       "experimentalTriggers": [
         {
           "type": "queue/v2beta",
-          "topic": "mycityweekends-ingestion"
+          "topic": "mycityweekends-ingestion",
+          "maxConcurrency": 1
         }
       ]
     }
