@@ -39,6 +39,8 @@ type PersistKickoffDiscoveryIngestionOptions = {
   now?: () => string
   logger?: (event: KickoffDiscoveryIngestionLogEvent) => void
   createIngestionRun: (args: CreateIngestionRunArgs) => Promise<CreateIngestionRunResult>
+  previewOnly?: boolean
+  promptVersion?: string
 }
 
 export async function persistKickoffDiscoveryIngestion(
@@ -47,20 +49,24 @@ export async function persistKickoffDiscoveryIngestion(
 ): Promise<PersistKickoffDiscoveryIngestionResult> {
   const prepared = kickoffDiscoveryIngestion(input, options)
 
+  const previewOnly = options.previewOnly ?? true
+  const promptVersion =
+    options.promptVersion ?? (previewOnly ? 'kickoff-preview-v1' : 'queue-kickoff-v1')
+
   const created = await options.createIngestionRun({
     status: 'running',
     city: prepared.run.city,
     startedAt: prepared.run.createdAt,
     weekendStart: prepared.run.weekendStart,
     weekendEnd: prepared.run.weekendEnd,
-    promptVersion: 'kickoff-preview-v1',
+    promptVersion,
     model: prepared.run.source,
     rawQuerySummary: JSON.stringify({
       runId: prepared.runId,
       trigger: prepared.run.trigger,
       requestedSections: prepared.run.requestedSections,
       jobCount: prepared.run.jobCount,
-      previewOnly: true,
+      previewOnly,
     }),
     candidateCount: 0,
     insertedCount: 0,

@@ -59,6 +59,8 @@ export async function POST(req: NextRequest) {
       },
       publisher: publishToQueue ? createVercelIngestionQueuePublisher() : undefined,
       publishMode: publishToQueue ? 'first' : 'all',
+      previewOnly: true,
+      promptVersion: 'queue-kickoff-preview-v1',
     },
   )
 

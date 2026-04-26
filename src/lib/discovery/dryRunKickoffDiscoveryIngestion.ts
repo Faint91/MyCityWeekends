@@ -33,6 +33,8 @@ type DryRunKickoffDiscoveryIngestionOptions = {
   createIngestionRun: (args: CreateIngestionRunArgs) => Promise<CreateIngestionRunResult>
   publisher?: IngestionQueuePublisher
   publishMode?: 'all' | 'first'
+  previewOnly?: boolean
+  promptVersion?: string
 }
 
 export async function dryRunKickoffDiscoveryIngestion(
@@ -43,6 +45,8 @@ export async function dryRunKickoffDiscoveryIngestion(
     createRunId: options.createRunId,
     now: options.now,
     createIngestionRun: options.createIngestionRun,
+    previewOnly: options.previewOnly,
+    promptVersion: options.promptVersion,
   })
 
   const queueMessages = buildIngestionSectionJobQueueMessages(persisted.persistedJobs)
