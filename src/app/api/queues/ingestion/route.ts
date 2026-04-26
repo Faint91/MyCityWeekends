@@ -3,6 +3,8 @@ import { getPayloadClient } from '@/lib/payload'
 import { processIngestionQueueMessage } from '@/lib/discovery/processIngestionQueueMessage'
 import { runDiscoveryIngestion } from '@/lib/discovery/runDiscoveryIngestion'
 
+export const maxDuration = 300
+
 async function readIngestionRun(id: number | string) {
   const payloadClient = await getPayloadClient()
 

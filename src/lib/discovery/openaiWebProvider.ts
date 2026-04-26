@@ -1,4 +1,6 @@
 import OpenAI from 'openai'
+import type { IngestionSection } from './ingestionSections'
+import { getDiscoverySectionStrategy } from './discoverySectionStrategy'
 import type { DiscoveryProviderResult, DiscoveredCandidate } from './types'
 
 function getOpenAIClient(): OpenAI {
@@ -14,6 +16,12 @@ function getOpenAIClient(): OpenAI {
 const OPENAI_DISCOVERY_TIMEOUT_MS = Number(process.env.OPENAI_DISCOVERY_TIMEOUT_MS ?? 300_000)
 const MAX_FINAL_CANDIDATES = 12
 const MAX_SUPPLEMENTAL_CANDIDATES = 6
+
+const SECTION_TARGET_COUNTS: Record<IngestionSection, number> = {
+  free: 4,
+  under30: 4,
+  top3: 3,
+}
 
 const DISCOVERY_SCHEMA = {
   type: 'object',
@@ -486,6 +494,30 @@ function prioritizeCandidates(candidates: DiscoveredCandidate[]): DiscoveredCand
   return selected.slice(0, MAX_FINAL_CANDIDATES)
 }
 
+function isCandidateForSection(candidate: DiscoveredCandidate, section: IngestionSection): boolean {
+  if (section === 'free') return isFreeCandidate(candidate)
+  if (section === 'under30') return isUnder30Candidate(candidate)
+
+  return isCandidateEligibleForPublishing(candidate)
+}
+
+function prioritizeCandidatesForSection(
+  candidates: DiscoveredCandidate[],
+  section: IngestionSection,
+): DiscoveredCandidate[] {
+  const targetCount = SECTION_TARGET_COUNTS[section]
+
+  return dedupeCandidates(candidates)
+    .filter((candidate) => isCandidateForSection(candidate, section))
+    .sort(section === 'under30' ? compareBudgetCandidates : compareCandidatesByQuality)
+    .slice(0, targetCount)
+    .map((candidate, index) => ({
+      ...candidate,
+      sectionSuggestion: section,
+      rankSuggestion: candidate.rankSuggestion ?? index + 1,
+    }))
+}
+
 function buildDiscoveryQualitySummary(
   candidates: DiscoveredCandidate[],
   options?: {
@@ -515,6 +547,61 @@ function hasWeakDiscoveryCoverage(candidates: DiscoveredCandidate[]): boolean {
   const summary = buildDiscoveryQualitySummary(candidates)
 
   return candidates.length < 6 || summary.freeCount === 0 || summary.under30Count < 1
+}
+
+function buildSectionDiscoveryUserPrompt(input: {
+  city: string
+  weekendStart: string
+  weekendEnd: string
+  section: IngestionSection
+}): string {
+  const strategy = getDiscoverySectionStrategy(input.section)
+  const targetCount = SECTION_TARGET_COUNTS[input.section]
+
+  const baseLines = [
+    `City: ${input.city}`,
+    `Weekend start: ${input.weekendStart}`,
+    `Weekend end: ${input.weekendEnd}`,
+    `Discovery section: ${strategy.label}`,
+    strategy.description,
+    `Find up to ${targetCount} real, distinct events for this exact section.`,
+    'Search across Metro Vancouver, not just the City of Vancouver.',
+    'Prefer events with clear source pages, date/time, venue, and price information when available.',
+    'When available, also return a usable event image URL in imageSourceUrl, preferably the event poster or hero image.',
+  ]
+
+  if (input.section === 'free') {
+    return [
+      ...baseLines,
+      'Only return events that count as free.',
+      'Treat pay-what-you-can, suggested donation, free with RSVP, and free before a certain time as free.',
+      'If an event is free with a condition, set isFree to true and mention the condition in description.',
+      'Set sectionSuggestion to free for every candidate.',
+      'Return structured JSON only.',
+    ].join('\n')
+  }
+
+  if (input.section === 'under30') {
+    return [
+      ...baseLines,
+      'Only return non-free events whose lowest advertised price is CAD 30 or less.',
+      'Exclude fully free events from this section.',
+      'Actively look for terms like tickets from, admission, cover, advance tickets, early bird, door price, affordable, budget, and cheap.',
+      'For examples like "$12 + fees", "$15-$25", "$20 advance / $30 door", "admission: $10", or "starting at $15", set priceMin to the lowest advertised number and priceMax when a real range is shown.',
+      'Set sectionSuggestion to under30 for every candidate.',
+      'Return structured JSON only.',
+    ].join('\n')
+  }
+
+  return [
+    ...baseLines,
+    'Return the best overall weekend picks, not just the cheapest options.',
+    'Prioritize events that feel distinctive, timely, and worth featuring as a Top 3 recommendation.',
+    'Avoid generic recurring listings unless the exact occurrence for the requested weekend is clearly shown.',
+    'Prefer events with a strong hook, performer, theme, format, venue angle, or audience experience.',
+    'Set sectionSuggestion to top3 for every candidate.',
+    'Return structured JSON only.',
+  ].join('\n')
 }
 
 function toCandidate(value: Record<string, unknown>, fallbackCity: string): DiscoveredCandidate {
@@ -646,20 +733,59 @@ export const __testUtils = {
   normalizeSectionSuggestion,
   isUnder30Candidate,
   prioritizeCandidates,
+  prioritizeCandidatesForSection,
+  buildSectionDiscoveryUserPrompt,
   toCandidate,
+}
+
+async function discoverSectionWithOpenAIWeb(input: {
+  city: string
+  weekendStart: string
+  weekendEnd: string
+  section: IngestionSection
+  model: string
+  developerPrompt: string
+  promptVersion: string
+}): Promise<DiscoveryProviderResult> {
+  const userPrompt = buildSectionDiscoveryUserPrompt(input)
+  const candidates = await runDiscoveryQuery({
+    model: input.model,
+    developerPrompt: input.developerPrompt,
+    userPrompt,
+    label: `${input.section}-section`,
+    fallbackCity: input.city,
+  })
+
+  const finalCandidates = prioritizeCandidatesForSection(candidates, input.section)
+
+  return {
+    source: 'openai_web',
+    city: input.city,
+    weekendStart: input.weekendStart,
+    weekendEnd: input.weekendEnd,
+    promptVersion: `${input.promptVersion}-${input.section}`,
+    model: input.model,
+    rawQuerySummary: userPrompt,
+    candidates: finalCandidates,
+    qualitySummary: buildDiscoveryQualitySummary(finalCandidates, {
+      refillFreeUsed: false,
+      refillUnder30Used: false,
+    }),
+  }
 }
 
 export async function discoverWithOpenAIWeb(input: {
   city: string
   weekendStart: string
   weekendEnd: string
+  section?: IngestionSection
 }): Promise<DiscoveryProviderResult> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('Missing OPENAI_API_KEY')
   }
 
   const model = process.env.OPENAI_DISCOVERY_MODEL ?? 'gpt-5'
-  const promptVersion = 'openai-web-v7'
+  const promptVersion = 'openai-web-v8'
 
   const developerPrompt = [
     'You are an event discovery analyst for MyCityWeekends.',
@@ -709,6 +835,18 @@ export async function discoverWithOpenAIWeb(input: {
     'If price is unknown, leave it null.',
     'If a field is unclear, return null rather than guessing.',
   ].join(' ')
+
+  if (input.section) {
+    return discoverSectionWithOpenAIWeb({
+      city: input.city,
+      weekendStart: input.weekendStart,
+      weekendEnd: input.weekendEnd,
+      section: input.section,
+      model,
+      developerPrompt,
+      promptVersion,
+    })
+  }
 
   const primaryUserPrompt = [
     `City: ${input.city}`,

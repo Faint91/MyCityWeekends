@@ -405,6 +405,7 @@ async function getProviderResult(
         city: input.city,
         weekendStart: input.weekendStart,
         weekendEnd: input.weekendEnd,
+        section: input.section,
       })
 
     case 'mock':
