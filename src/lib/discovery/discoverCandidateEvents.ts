@@ -647,35 +647,40 @@ export async function discoverCandidateEvents(
   const weekendStart = cleanString(input.weekendStart) ?? weekendWindow.weekendStart
   const weekendEnd = cleanString(input.weekendEnd) ?? weekendWindow.weekendEnd
   const section = input.section
+  const parentIngestionRunId = input.ingestionRunId
+  const shouldManageOwnIngestionRun = parentIngestionRunId === undefined
+
   const weekendDrop = await ensureWeekendDrop(payload, {
     city: city,
     weekendStart: weekendStart,
     weekendEnd: weekendEnd,
   })
 
-  const run = await payload.create({
-    collection: 'ingestion-runs',
-    overrideAccess: true,
-    data: {
-      status: 'running',
-      city,
-      startedAt: new Date().toISOString(),
-      weekendStart,
-      weekendEnd,
-      promptVersion: 'pending',
-      model: 'pending',
-      rawQuerySummary: `Starting ${source} discovery run for ${city}.`,
-      candidateCount: 0,
-      insertedCount: 0,
-      duplicateCount: 0,
-      freeCount: 0,
-      under30Count: 0,
-      pricedCount: 0,
-      missingPriceCount: 0,
-      refillFreeUsed: false,
-      refillUnder30Used: false,
-    },
-  })
+  const run = shouldManageOwnIngestionRun
+    ? await payload.create({
+        collection: 'ingestion-runs',
+        overrideAccess: true,
+        data: {
+          status: 'running',
+          city,
+          startedAt: new Date().toISOString(),
+          weekendStart,
+          weekendEnd,
+          promptVersion: 'pending',
+          model: 'pending',
+          rawQuerySummary: `Starting ${source} discovery run for ${city}.`,
+          candidateCount: 0,
+          insertedCount: 0,
+          duplicateCount: 0,
+          freeCount: 0,
+          under30Count: 0,
+          pricedCount: 0,
+          missingPriceCount: 0,
+          refillFreeUsed: false,
+          refillUnder30Used: false,
+        },
+      })
+    : { id: parentIngestionRunId }
 
   try {
     const provider = await getProviderResult({
@@ -805,27 +810,29 @@ export async function discoverCandidateEvents(
       inserted += 1
     }
 
-    await payload.update({
-      collection: 'ingestion-runs',
-      id: run.id,
-      overrideAccess: true,
-      data: {
-        status: duplicates > 0 && inserted === 0 ? 'partial' : 'succeeded',
-        finishedAt: new Date().toISOString(),
-        promptVersion: provider.promptVersion,
-        model: provider.model,
-        rawQuerySummary: provider.rawQuerySummary,
-        candidateCount: provider.candidates.length,
-        insertedCount: inserted,
-        duplicateCount: duplicates,
-        freeCount: qualitySummary.freeCount,
-        under30Count: qualitySummary.under30Count,
-        pricedCount: qualitySummary.pricedCount,
-        missingPriceCount: qualitySummary.missingPriceCount,
-        refillFreeUsed: qualitySummary.refillFreeUsed,
-        refillUnder30Used: qualitySummary.refillUnder30Used,
-      },
-    })
+    if (shouldManageOwnIngestionRun) {
+      await payload.update({
+        collection: 'ingestion-runs',
+        id: run.id,
+        overrideAccess: true,
+        data: {
+          status: duplicates > 0 && inserted === 0 ? 'partial' : 'succeeded',
+          finishedAt: new Date().toISOString(),
+          promptVersion: provider.promptVersion,
+          model: provider.model,
+          rawQuerySummary: provider.rawQuerySummary,
+          candidateCount: provider.candidates.length,
+          insertedCount: inserted,
+          duplicateCount: duplicates,
+          freeCount: qualitySummary.freeCount,
+          under30Count: qualitySummary.under30Count,
+          pricedCount: qualitySummary.pricedCount,
+          missingPriceCount: qualitySummary.missingPriceCount,
+          refillFreeUsed: qualitySummary.refillFreeUsed,
+          refillUnder30Used: qualitySummary.refillUnder30Used,
+        },
+      })
+    }
 
     console.log('[discovery] Quality summary', {
       runId: run.id,
@@ -849,16 +856,18 @@ export async function discoverCandidateEvents(
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown discovery error.'
 
-    await payload.update({
-      collection: 'ingestion-runs',
-      id: run.id,
-      overrideAccess: true,
-      data: {
-        status: 'failed',
-        finishedAt: new Date().toISOString(),
-        errorSummary: message,
-      },
-    })
+    if (shouldManageOwnIngestionRun) {
+      await payload.update({
+        collection: 'ingestion-runs',
+        id: run.id,
+        overrideAccess: true,
+        data: {
+          status: 'failed',
+          finishedAt: new Date().toISOString(),
+          errorSummary: message,
+        },
+      })
+    }
 
     throw error
   }

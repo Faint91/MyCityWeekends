@@ -57,10 +57,11 @@ export type DiscoverCandidateEventsInput = {
   weekendStart?: string
   weekendEnd?: string
   section?: IngestionSection
+  ingestionRunId?: number
 }
 
 export type DiscoverCandidateEventsResult = {
-  runId: number
+  runId: number | string
   source: DiscoverySource
   city: string
   found: number

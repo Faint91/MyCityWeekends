@@ -13,10 +13,24 @@ type ExecuteIngestionSectionJobOptions = {
   runDiscovery: (input: RunDiscoveryIngestionInput) => Promise<DiscoverCandidateEventsResult>
 }
 
+function normalizeNumericIngestionRunId(
+  value: IngestionJobPayload['ingestionRunId'],
+): number | undefined {
+  if (typeof value === 'number') return value
+
+  if (typeof value === 'string' && /^\d+$/.test(value)) {
+    return Number(value)
+  }
+
+  return undefined
+}
+
 export async function executeIngestionSectionJob(
   payload: IngestionJobPayload,
   options: ExecuteIngestionSectionJobOptions,
 ): Promise<ExecuteIngestionSectionJobResult> {
+  const ingestionRunId = normalizeNumericIngestionRunId(payload.ingestionRunId)
+
   const result = await options.runDiscovery({
     trigger: 'worker',
     runId: payload.runId,
@@ -25,6 +39,7 @@ export async function executeIngestionSectionJob(
     weekendStart: payload.weekendStart,
     weekendEnd: payload.weekendEnd,
     source: payload.source,
+    ...(ingestionRunId === undefined ? {} : { ingestionRunId }),
   })
 
   return {

@@ -59,4 +59,43 @@ describe('executeIngestionSectionJob', () => {
       },
     })
   })
+
+  it('passes numeric ingestionRunId through to discovery when provided', async () => {
+    const runDiscoveryMock = vi.fn().mockResolvedValue({
+      candidateCount: 1,
+      insertedCount: 1,
+      duplicateCount: 0,
+      freeCount: 1,
+      under30Count: 0,
+      pricedCount: 0,
+      missingPriceCount: 0,
+      refillFreeUsed: false,
+      refillUnder30Used: false,
+      runId: 88,
+    })
+
+    await executeIngestionSectionJob(
+      {
+        runId: 'run_123',
+        ingestionRunId: 88,
+        section: 'free',
+        city: 'Vancouver, BC',
+        source: 'mock',
+      },
+      {
+        runDiscovery: runDiscoveryMock,
+      },
+    )
+
+    expect(runDiscoveryMock).toHaveBeenCalledWith({
+      trigger: 'worker',
+      runId: 'run_123',
+      section: 'free',
+      city: 'Vancouver, BC',
+      weekendStart: undefined,
+      weekendEnd: undefined,
+      source: 'mock',
+      ingestionRunId: 88,
+    })
+  })
 })
