@@ -19,7 +19,7 @@ const MAX_SUPPLEMENTAL_CANDIDATES = 6
 
 const SECTION_TARGET_COUNTS: Record<IngestionSection, number> = {
   free: 4,
-  under30: 4,
+  under30: 3,
   top3: 3,
 }
 
@@ -565,8 +565,10 @@ function buildSectionDiscoveryUserPrompt(input: {
     `Discovery section: ${strategy.label}`,
     strategy.description,
     `Find up to ${targetCount} real, distinct events for this exact section.`,
+    `Stop searching once you have ${targetCount} strong valid candidates.`,
     'Search across Metro Vancouver, not just the City of Vancouver.',
     'Prefer events with clear source pages, date/time, venue, and price information when available.',
+    'Prefer official event pages, venue pages, organizer pages, Eventbrite, Showpass, TicketWeb, Ticketmaster, Do604, Vancouver Civic Theatres, and venue calendars.',
     'When available, also return a usable event image URL in imageSourceUrl, preferably the event poster or hero image.',
   ]
 
@@ -586,8 +588,10 @@ function buildSectionDiscoveryUserPrompt(input: {
       ...baseLines,
       'Only return non-free events whose lowest advertised price is CAD 30 or less.',
       'Exclude fully free events from this section.',
-      'Actively look for terms like tickets from, admission, cover, advance tickets, early bird, door price, affordable, budget, and cheap.',
+      'Prioritize quick-to-verify event types: comedy shows, small live music shows, gallery evenings, museum nights, community performances, markets with ticketed workshops, and local food events.',
+      'Use price evidence from the event page, ticket widget, ticket page, sidebar, admission section, or venue calendar.',
       'For examples like "$12 + fees", "$15-$25", "$20 advance / $30 door", "admission: $10", or "starting at $15", set priceMin to the lowest advertised number and priceMax when a real range is shown.',
+      'Do not spend time searching for obscure events if three valid candidates are already found.',
       'Set sectionSuggestion to under30 for every candidate.',
       'Return structured JSON only.',
     ].join('\n')

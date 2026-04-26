@@ -27,6 +27,9 @@ describe('openaiWebProvider section discovery helpers', () => {
     expect(prompt).toContain(
       'Only return non-free events whose lowest advertised price is CAD 30 or less.',
     )
+    expect(prompt).toContain(
+      'Do not spend time searching for obscure events if three valid candidates are already found.',
+    )
     expect(prompt).toContain('Set sectionSuggestion to under30')
   })
 
