@@ -24,7 +24,7 @@ async function updateIngestionRun(id: number | string, data: Record<string, unkn
   })
 }
 
-export const POST = handleCallback(async (message) => {
+const queueCallback = handleCallback(async (message) => {
   const result = await processIngestionQueueMessage(message, {
     runDiscovery: runDiscoveryIngestion,
     readIngestionRun,
@@ -35,3 +35,7 @@ export const POST = handleCallback(async (message) => {
     throw new Error(result.error)
   }
 })
+
+export async function POST(request: Request) {
+  return queueCallback({ request })
+}
