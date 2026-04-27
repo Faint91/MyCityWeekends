@@ -3,7 +3,16 @@
 import { ensureDiscoveryWeekendDrop } from '@/lib/discovery/ensureDiscoveryWeekendDrop'
 import { getPayloadClient } from '@/lib/payload'
 import { dryRunKickoffDiscoveryIngestion } from '@/lib/discovery/dryRunKickoffDiscoveryIngestion'
+import { noopIngestionQueuePublisher } from '@/lib/discovery/ingestionQueuePublisher'
 import { createVercelIngestionQueuePublisher } from '@/lib/discovery/vercelIngestionQueuePublisher'
+
+function getAdminIngestionQueuePublisher() {
+  if (process.env.VERCEL === '1') {
+    return createVercelIngestionQueuePublisher()
+  }
+
+  return noopIngestionQueuePublisher
+}
 
 export type ExecuteIngestionQueuedResult = Awaited<
   ReturnType<typeof dryRunKickoffDiscoveryIngestion>
@@ -33,7 +42,7 @@ export async function executeIngestionAction(input?: {
             data: args,
           })
         },
-        publisher: createVercelIngestionQueuePublisher(),
+        publisher: getAdminIngestionQueuePublisher(),
         publishMode: 'first',
         previewOnly: false,
         promptVersion: 'queue-kickoff-v1',

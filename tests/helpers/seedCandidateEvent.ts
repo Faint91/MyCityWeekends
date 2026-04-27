@@ -10,6 +10,8 @@ type SeededCandidateEvent = {
   sectionSuggestion: 'free'
   weekendDropId?: number
   weekendDropTitle?: string
+  publishedWeekendDropId?: number
+  draftWeekendDropId?: number
 }
 
 function uniqueSuffix() {
@@ -127,6 +129,8 @@ export async function seedPublishableCandidateScenarioWithPublishedAndDraft() {
     venueName,
     whyWorthItDraft,
     sectionSuggestion: 'free' as const,
+    weekendDropId: publishedWeekendDrop.id,
+    weekendDropTitle: publishedWeekendDrop.title,
     publishedWeekendDropId: publishedWeekendDrop.id,
     draftWeekendDropId: draftWeekendDrop.id,
   }
@@ -221,6 +225,14 @@ export async function getCandidateById(candidateId: number) {
 export async function cleanupCandidateEventArtifacts(seed: SeededCandidateEvent): Promise<void> {
   const payload = await getTestPayload()
 
+  const weekendDropIds = Array.from(
+    new Set(
+      [seed.weekendDropId, seed.publishedWeekendDropId, seed.draftWeekendDropId].filter(
+        (id): id is number => typeof id === 'number',
+      ),
+    ),
+  )
+
   const events = await payload.find({
     collection: 'events',
     overrideAccess: true,
@@ -235,6 +247,8 @@ export async function cleanupCandidateEventArtifacts(seed: SeededCandidateEvent)
     (id): id is number => typeof id === 'number',
   )
 
+  const deletedWeekendDropItemIds = new Set<number>()
+
   if (eventIds.length > 0) {
     const weekendDropItems = await payload.find({
       collection: 'weekend-drop-items',
@@ -248,11 +262,44 @@ export async function cleanupCandidateEventArtifacts(seed: SeededCandidateEvent)
     })
 
     for (const item of weekendDropItems.docs) {
+      if (typeof item.id === 'number') {
+        deletedWeekendDropItemIds.add(item.id)
+      }
+
       await payload.delete({
         collection: 'weekend-drop-items',
         id: item.id,
         overrideAccess: true,
       })
+    }
+  }
+
+  if (weekendDropIds.length > 0) {
+    const weekendDropItems = await payload.find({
+      collection: 'weekend-drop-items',
+      overrideAccess: true,
+      limit: 100,
+      where: {
+        or: weekendDropIds.map((weekendDropId) => ({
+          weekendDrop: { equals: weekendDropId },
+        })),
+      },
+    })
+
+    for (const item of weekendDropItems.docs) {
+      if (typeof item.id === 'number' && deletedWeekendDropItemIds.has(item.id)) {
+        continue
+      }
+
+      await payload.delete({
+        collection: 'weekend-drop-items',
+        id: item.id,
+        overrideAccess: true,
+      })
+
+      if (typeof item.id === 'number') {
+        deletedWeekendDropItemIds.add(item.id)
+      }
     }
   }
 
@@ -272,10 +319,10 @@ export async function cleanupCandidateEventArtifacts(seed: SeededCandidateEvent)
     },
   })
 
-  if (seed.weekendDropId) {
+  for (const weekendDropId of weekendDropIds) {
     await payload.delete({
       collection: 'weekend-drops',
-      id: seed.weekendDropId,
+      id: weekendDropId,
       overrideAccess: true,
     })
   }

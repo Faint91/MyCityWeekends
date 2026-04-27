@@ -1,8 +1,5 @@
 import { test, expect } from '@playwright/test'
-import {
-  cleanupMockDiscoveryArtifacts,
-  countMockDiscoveryCandidates,
-} from '../helpers/mockDiscoveryCleanup'
+import { cleanupMockDiscoveryArtifacts } from '../helpers/mockDiscoveryCleanup'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -15,7 +12,7 @@ test.describe('Admin dashboard ingestion panel', () => {
     await cleanupMockDiscoveryArtifacts()
   })
 
-  test('Admin Panel › can execute mock ingestion from the dashboard', async ({ page }) => {
+  test('Admin Panel › can queue mock ingestion from the dashboard', async ({ page }) => {
     test.setTimeout(120_000)
 
     await page.goto('/admin', { waitUntil: 'networkidle' })
@@ -36,32 +33,25 @@ test.describe('Admin dashboard ingestion panel', () => {
     })
     await executeButton.click()
 
-    await expect(page.getByText('Ingestion completed.')).toBeVisible({
+    await expect(page.getByText('Ingestion queued.')).toBeVisible({
       timeout: 60_000,
     })
 
     await expect(page.getByText('Source: mock')).toBeVisible()
     await expect(page.getByText('City: Vancouver, BC')).toBeVisible()
-    await expect(page.getByText('Found: 3')).toBeVisible()
-    await expect(page.getByText('Inserted: 3')).toBeVisible()
-    await expect(page.getByText('Duplicates: 0')).toBeVisible()
+    await expect(page.getByText('Parent ingestion run ID:')).toBeVisible()
+    await expect(page.getByText('Initial status: running')).toBeVisible()
+    await expect(page.getByText('Requested sections: free, under30, top3')).toBeVisible()
+    await expect(page.getByText('Queued first section: free')).toBeVisible()
+    await expect(page.getByText('Queue messages prepared: 3')).toBeVisible()
+    await expect(page.getByText(/Queue messages published now: \d+/)).toBeVisible()
 
-    await page.goto('/admin/collections/candidate-events', {
-      waitUntil: 'domcontentloaded',
+    await expect(page.getByRole('link', { name: 'Open Ingestion Run' })).toBeVisible({
+      timeout: 60_000,
     })
 
-    if (new URL(page.url()).pathname === '/admin/login') {
-      await page.goto('/admin/collections/candidate-events', {
-        waitUntil: 'domcontentloaded',
-      })
-    }
-
-    await expect
-      .poll(() => new URL(page.url()).pathname, {
-        timeout: 60_000,
-      })
-      .toBe('/admin/collections/candidate-events')
-    const totalMockCandidates = await countMockDiscoveryCandidates()
-    expect(totalMockCandidates).toBe(3)
+    await expect(page.getByRole('link', { name: 'Review Candidate Events' })).toBeVisible({
+      timeout: 60_000,
+    })
   })
 })
