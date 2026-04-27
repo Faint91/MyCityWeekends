@@ -1,3 +1,4 @@
+import { ensureDiscoveryWeekendDrop } from '@/lib/discovery/ensureDiscoveryWeekendDrop'
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayloadClient } from '@/lib/payload'
 import { dryRunKickoffDiscoveryIngestion } from '@/lib/discovery/dryRunKickoffDiscoveryIngestion'
@@ -64,6 +65,14 @@ export async function POST(req: NextRequest) {
 
   const sections = normalizeRequestedSections(body)
 
+  const payload = await getPayloadClient()
+
+  await ensureDiscoveryWeekendDrop(payload, {
+    city: body.city ?? 'Vancouver, BC',
+    weekendStart: body.weekendStart,
+    weekendEnd: body.weekendEnd,
+  })
+
   const result = await dryRunKickoffDiscoveryIngestion(
     {
       trigger: 'api',
@@ -75,8 +84,6 @@ export async function POST(req: NextRequest) {
     },
     {
       createIngestionRun: async (args) => {
-        const payload = await getPayloadClient()
-
         return payload.create({
           collection: 'ingestion-runs',
           overrideAccess: true,

@@ -1,5 +1,6 @@
 'use server'
 
+import { ensureDiscoveryWeekendDrop } from '@/lib/discovery/ensureDiscoveryWeekendDrop'
 import { getPayloadClient } from '@/lib/payload'
 import { dryRunKickoffDiscoveryIngestion } from '@/lib/discovery/dryRunKickoffDiscoveryIngestion'
 import { createVercelIngestionQueuePublisher } from '@/lib/discovery/vercelIngestionQueuePublisher'
@@ -13,6 +14,11 @@ export async function executeIngestionAction(input?: {
   city?: string
 }) {
   try {
+    const payload = await getPayloadClient()
+
+    await ensureDiscoveryWeekendDrop(payload, {
+      city: input?.city ?? 'Vancouver, BC',
+    })
     const result = await dryRunKickoffDiscoveryIngestion(
       {
         source: input?.source ?? 'openai_web',
@@ -21,8 +27,6 @@ export async function executeIngestionAction(input?: {
       },
       {
         createIngestionRun: async (args) => {
-          const payload = await getPayloadClient()
-
           return payload.create({
             collection: 'ingestion-runs',
             overrideAccess: true,
