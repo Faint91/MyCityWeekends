@@ -7,6 +7,10 @@ import crypto from 'node:crypto'
 import { promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import {
+  extractBestImageUrlFromPage,
+  normalizeRemoteImageUrl as normalizeSharedRemoteImageUrl,
+} from './imageSourceUrls'
 
 type ID = number
 
@@ -115,6 +119,41 @@ const EVENT_TAGS = [
 
 type EventTag = (typeof EVENT_TAGS)[number]
 
+const GRANULAR_TAG_TO_EVENT_TAG: Partial<Record<string, EventTag>> = {
+  hockey: 'sports',
+  basketball: 'sports',
+  soccer: 'sports',
+  baseball: 'sports',
+  football: 'sports',
+  running: 'sports',
+  tennis: 'sports',
+  volleyball: 'sports',
+  pickleball: 'sports',
+  lacrosse: 'sports',
+  rugby: 'sports',
+  cycling: 'sports',
+  esports: 'sports',
+
+  'live-music': 'music',
+  'dj-dance': 'nightlife',
+  dance: 'art',
+  drag: 'nightlife',
+  karaoke: 'nightlife',
+
+  drinks: 'food',
+  theatre: 'art',
+  film: 'art',
+  books: 'art',
+  anime: 'art',
+
+  yoga: 'community',
+  wellness: 'community',
+  festival: 'community',
+  family: 'community',
+  dogs: 'community',
+  holiday: 'community',
+}
+
 function buildGoogleMapsSearchUrl(query: string): string | undefined {
   const cleaned = cleanString(query)
   if (!cleaned) return undefined
@@ -155,6 +194,32 @@ function relationId(value: RelationValue): ID | undefined {
   return undefined
 }
 
+function slugifyCandidateTag(value: string): string | undefined {
+  const cleaned = cleanString(value)
+  if (!cleaned) return undefined
+
+  return cleaned
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '')
+}
+
+function candidateTagToEventTag(value: string | undefined): EventTag | undefined {
+  if (!value) return undefined
+
+  const normalized = slugifyCandidateTag(value)
+  if (!normalized) return undefined
+
+  if (isEventTag(normalized)) {
+    return normalized
+  }
+
+  return GRANULAR_TAG_TO_EVENT_TAG[normalized]
+}
+
 function candidateTagsToEventTags(tags: CandidateEventDoc['tags']): EventTag[] | undefined {
   if (!Array.isArray(tags)) return undefined
 
@@ -164,9 +229,8 @@ function candidateTagsToEventTags(tags: CandidateEventDoc['tags']): EventTag[] |
       if (row && typeof row === 'object') return row.tag ?? undefined
       return undefined
     })
-    .map((value) => cleanString(value)?.toLowerCase())
-    .filter((value): value is string => Boolean(value))
-    .filter((value): value is EventTag => isEventTag(value))
+    .map(candidateTagToEventTag)
+    .filter((value): value is EventTag => Boolean(value))
 
   const unique = Array.from(new Set(values))
   return unique.length > 0 ? unique : undefined
@@ -464,7 +528,7 @@ async function importRemoteCandidateImageToMedia(input: {
   alt: string
 }): Promise<number | null> {
   const originalImageUrl = cleanString(input.imageUrl)
-  const imageUrl = normalizeRemoteImageUrl(originalImageUrl)
+  const imageUrl = normalizeSharedRemoteImageUrl(originalImageUrl)
 
   if (!imageUrl) {
     console.warn('[candidate-events] Skipping image import because imageUrl is empty', {
@@ -725,12 +789,12 @@ async function importBestCandidateImageToMedia(input: {
   ticketUrl: string | null | undefined
   alt: string
 }): Promise<number | null> {
-  const directImageUrl = normalizeRemoteImageUrl(input.imageUrl)
-  const sourcePageImageUrl = normalizeRemoteImageUrl(
-    await extractImageUrlFromPageForPublish(input.sourceUrl),
+  const directImageUrl = normalizeSharedRemoteImageUrl(input.imageUrl)
+  const sourcePageImageUrl = normalizeSharedRemoteImageUrl(
+    await extractBestImageUrlFromPage(input.sourceUrl),
   )
-  const ticketPageImageUrl = normalizeRemoteImageUrl(
-    await extractImageUrlFromPageForPublish(input.ticketUrl),
+  const ticketPageImageUrl = normalizeSharedRemoteImageUrl(
+    await extractBestImageUrlFromPage(input.ticketUrl),
   )
 
   const candidates = [directImageUrl, sourcePageImageUrl, ticketPageImageUrl].filter(

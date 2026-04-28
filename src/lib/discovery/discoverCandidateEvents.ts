@@ -1,3 +1,4 @@
+import { durationMs, ingestionDebugError, ingestionDebugLog } from './ingestionDebugLog'
 import { discoverWithOpenAIWeb } from './openaiWebProvider'
 import type { CandidateEvent, Event } from '@/payload-types'
 import { getPayloadClient } from '@/lib/payload'
@@ -7,6 +8,7 @@ import {
   cleanString,
   normalizeUrl,
 } from './dedupe'
+import { normalizeRemoteImageUrl } from '@/lib/imageSourceUrls'
 import type {
   DiscoverCandidateEventsInput,
   DiscoverCandidateEventsResult,
@@ -27,7 +29,60 @@ const ALLOWED_TAGS = new Set([
   'market',
   'education',
   'nightlife',
-] as const)
+
+  'hockey',
+  'basketball',
+  'soccer',
+  'baseball',
+  'football',
+  'running',
+  'tennis',
+  'volleyball',
+  'pickleball',
+  'lacrosse',
+  'rugby',
+  'cycling',
+  'yoga',
+
+  'live-music',
+  'dj-dance',
+  'dance',
+  'drag',
+  'karaoke',
+
+  'drinks',
+  'theatre',
+  'film',
+  'books',
+  'anime',
+  'esports',
+  'festival',
+  'family',
+  'dogs',
+  'holiday',
+  'wellness',
+])
+
+const TAG_ALIASES: Record<string, string> = {
+  'live-music': 'live-music',
+  'live-music-event': 'live-music',
+  concert: 'live-music',
+  gig: 'live-music',
+  dj: 'dj-dance',
+  'dj-night': 'dj-dance',
+  'dance-party': 'dj-dance',
+  theater: 'theatre',
+  movie: 'film',
+  cinema: 'film',
+  beer: 'drinks',
+  brewery: 'drinks',
+  wine: 'drinks',
+  'food-truck': 'food',
+  'food-trucks': 'food',
+  'family-friendly': 'family',
+  pet: 'dogs',
+  pets: 'dogs',
+}
 
 type ExistingCandidateLookup = {
   title?: string | null
@@ -129,12 +184,26 @@ async function ensureWeekendDrop(
   })
 }
 
+function slugifyTag(tag: string): string | undefined {
+  const cleaned = cleanString(tag)
+  if (!cleaned) return undefined
+
+  return cleaned
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '')
+}
+
 function normalizeTag(tag: string): string | undefined {
-  const normalized = cleanString(tag)?.toLowerCase()
+  const normalized = slugifyTag(tag)
   if (!normalized) return undefined
-  return ALLOWED_TAGS.has(normalized as typeof ALLOWED_TAGS extends Set<infer T> ? T : never)
-    ? normalized
-    : undefined
+
+  const canonical = TAG_ALIASES[normalized] ?? normalized
+
+  return ALLOWED_TAGS.has(canonical) ? canonical : undefined
 }
 
 const DISCOVERY_TIME_ZONE = 'America/Vancouver'
@@ -621,20 +690,12 @@ async function extractImageUrlFromPage(pageUrl: string | null | undefined): Prom
 async function resolveCandidateImageSourceUrl(
   rawCandidate: DiscoveredCandidate,
 ): Promise<string | null> {
-  const existing = normalizeDiscoveredImageUrl(rawCandidate.imageSourceUrl)
-  if (existing) return existing
-
-  const fromSource = normalizeDiscoveredImageUrl(
-    await extractImageUrlFromPage(rawCandidate.sourceUrl),
-  )
-  if (fromSource) return fromSource
-
-  const fromTicket = normalizeDiscoveredImageUrl(
-    await extractImageUrlFromPage(rawCandidate.ticketUrl),
-  )
-  if (fromTicket) return fromTicket
-
-  return null
+  // Keep queue ingestion fast and reliable.
+  // The worker should not spend extra time fetching source/ticket pages for every candidate,
+  // because Vercel can hard-timeout the queue request before we can mark the run failed/partial.
+  //
+  // Stronger page-level image extraction still happens later during candidate publish.
+  return normalizeRemoteImageUrl(rawCandidate.imageSourceUrl)
 }
 
 export async function discoverCandidateEvents(
@@ -650,11 +711,41 @@ export async function discoverCandidateEvents(
   const section = input.section
   const parentIngestionRunId = input.ingestionRunId
   const shouldManageOwnIngestionRun = parentIngestionRunId === undefined
+  const discoveryStartedAt = Date.now()
+
+  ingestionDebugLog('discovery.start', {
+    source,
+    city,
+    section: section ?? 'all',
+    parentIngestionRunId,
+    weekendStart,
+    weekendEnd,
+  })
+
+  const weekendDropStartedAt = Date.now()
+
+  ingestionDebugLog('discovery.weekendDrop.ensure.start', {
+    source,
+    city,
+    section: section ?? 'all',
+    parentIngestionRunId,
+    weekendStart,
+    weekendEnd,
+  })
 
   const weekendDrop = await ensureWeekendDrop(payload, {
     city: city,
     weekendStart: weekendStart,
     weekendEnd: weekendEnd,
+  })
+
+  ingestionDebugLog('discovery.weekendDrop.ensure.done', {
+    source,
+    city,
+    section: section ?? 'all',
+    parentIngestionRunId,
+    weekendDropId: weekendDrop.id,
+    durationMs: durationMs(weekendDropStartedAt),
   })
 
   const run = shouldManageOwnIngestionRun
@@ -683,6 +774,15 @@ export async function discoverCandidateEvents(
       })
     : { id: parentIngestionRunId }
 
+  const providerStartedAt = Date.now()
+
+  ingestionDebugLog('discovery.provider.start', {
+    source,
+    city,
+    section: section ?? 'all',
+    runId: run.id,
+  })
+
   try {
     const provider = await getProviderResult({
       source,
@@ -692,7 +792,27 @@ export async function discoverCandidateEvents(
       section,
     })
 
+    ingestionDebugLog('discovery.provider.done', {
+      source,
+      city,
+      section: section ?? 'all',
+      runId: run.id,
+      durationMs: durationMs(providerStartedAt),
+      providerCandidates: provider.candidates.length,
+      promptVersion: provider.promptVersion,
+      model: provider.model,
+    })
+
     const qualitySummary = buildDiscoveryQualitySummary(provider)
+
+    const lookupStartedAt = Date.now()
+
+    ingestionDebugLog('discovery.existingLookup.start', {
+      source,
+      city,
+      section: section ?? 'all',
+      runId: run.id,
+    })
 
     const [existingCandidateResult, existingEventResult] = await Promise.all([
       payload.find({
@@ -713,6 +833,16 @@ export async function discoverCandidateEvents(
     const existingCandidateDocs = (existingCandidateResult.docs ?? []) as CandidateEvent[]
     const existingEventDocs = (existingEventResult.docs ?? []) as Event[]
 
+    ingestionDebugLog('discovery.existingLookup.done', {
+      source,
+      city,
+      section: section ?? 'all',
+      runId: run.id,
+      durationMs: durationMs(lookupStartedAt),
+      existingCandidates: existingCandidateDocs.length,
+      existingEvents: existingEventDocs.length,
+    })
+
     const existingCandidates = existingCandidateDocs.map(toExistingCandidateLookup)
     const existingEvents = existingEventDocs.map(toExistingEventLookup)
     const existingFingerprints = existingCandidateDocs
@@ -724,6 +854,14 @@ export async function discoverCandidateEvents(
     const candidateIds: number[] = []
     let inserted = 0
     let duplicates = 0
+
+    ingestionDebugLog('discovery.candidateLoop.start', {
+      source,
+      city,
+      section: section ?? 'all',
+      runId: run.id,
+      providerCandidates: provider.candidates.length,
+    })
 
     for (const rawCandidate of provider.candidates) {
       const title = cleanString(rawCandidate.title)
@@ -797,6 +935,15 @@ export async function discoverCandidateEvents(
         },
       })
 
+      ingestionDebugLog('discovery.candidate.created', {
+        source,
+        city,
+        section: section ?? 'all',
+        runId: run.id,
+        candidateId: created.id,
+        title,
+      })
+
       knownFingerprints.add(fingerprint)
       existingCandidates.push({
         title,
@@ -842,6 +989,18 @@ export async function discoverCandidateEvents(
       ...qualitySummary,
     })
 
+    ingestionDebugLog('discovery.done', {
+      source,
+      city,
+      section: section ?? 'all',
+      runId: run.id,
+      durationMs: durationMs(discoveryStartedAt),
+      found: provider.candidates.length,
+      inserted,
+      duplicates,
+      candidateIds,
+    })
+
     return {
       runId: run.id,
       source,
@@ -855,6 +1014,14 @@ export async function discoverCandidateEvents(
       qualitySummary,
     }
   } catch (error) {
+    ingestionDebugError('discovery.error', error, {
+      source,
+      city,
+      section: section ?? 'all',
+      runId: run.id,
+      durationMs: durationMs(discoveryStartedAt),
+    })
+
     const message = error instanceof Error ? error.message : 'Unknown discovery error.'
 
     if (shouldManageOwnIngestionRun) {

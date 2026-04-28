@@ -1,3 +1,8 @@
+import {
+  durationMs,
+  ingestionDebugError,
+  ingestionDebugLog,
+} from '@/lib/discovery/ingestionDebugLog'
 import { ensureDiscoveryWeekendDrop } from '@/lib/discovery/ensureDiscoveryWeekendDrop'
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayloadClient } from '@/lib/payload'
@@ -65,12 +70,28 @@ export async function POST(req: NextRequest) {
 
   const sections = normalizeRequestedSections(body)
 
+  const startedAt = Date.now()
+
+  ingestionDebugLog('kickoff.route.start', {
+    source: body.source ?? 'openai_web',
+    city: body.city ?? 'Vancouver, BC',
+    weekendStart: body.weekendStart,
+    weekendEnd: body.weekendEnd,
+    sections,
+  })
+
   const payload = await getPayloadClient()
 
   await ensureDiscoveryWeekendDrop(payload, {
     city: body.city ?? 'Vancouver, BC',
     weekendStart: body.weekendStart,
     weekendEnd: body.weekendEnd,
+  })
+
+  ingestionDebugLog('kickoff.queue-publish.start', {
+    source: body.source ?? 'openai_web',
+    city: body.city ?? 'Vancouver, BC',
+    sections,
   })
 
   const result = await dryRunKickoffDiscoveryIngestion(
@@ -96,6 +117,16 @@ export async function POST(req: NextRequest) {
       promptVersion: 'queue-kickoff-v1',
     },
   )
+
+  ingestionDebugLog('kickoff.queue-publish.done', {
+    durationMs: durationMs(startedAt),
+    persistedRunId: result.persistedRun.id,
+    persistedRunStatus: result.persistedRun.status,
+    requestedSections: result.run.requestedSections,
+    attempted: result.publishResult.attempted,
+    published: result.publishResult.published,
+    publishedSections: result.publishedQueueMessages.map((message) => message.job.section),
+  })
 
   return NextResponse.json({
     ok: true,

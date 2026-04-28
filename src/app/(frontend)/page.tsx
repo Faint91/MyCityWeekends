@@ -95,6 +95,13 @@ export default async function WeekendPage() {
                     internalHref={event.slug ? `/event/${event.slug}` : null}
                     saveSlug={event.slug ?? null}
                     image={event.image && typeof event.image === 'object' ? event.image : null}
+                    description={event.description ?? item.whyWorthIt ?? null}
+                    tags={Array.isArray(event.tags) ? event.tags : null}
+                    venueName={
+                      event.venue && typeof event.venue === 'object'
+                        ? (event.venue.name ?? null)
+                        : null
+                    }
                     backHref="/"
                   />
                 )

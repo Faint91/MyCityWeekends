@@ -1,5 +1,6 @@
 import React from 'react'
 import type { Metadata } from 'next'
+import { EventFallbackImage } from '@/components/EventFallbackImage'
 import { notFound } from 'next/navigation'
 import type { Event, Media as MediaDoc } from '@/payload-types'
 import { getPayloadClient } from '@/lib/payload'
@@ -323,6 +324,7 @@ export default async function Page({ params, searchParams }: Props) {
   const structuredData = buildEventStructuredData(event, slug)
   const eventImage = getEventImage(event)
   const longDescription = getEventLongDescription(event)
+  const eventTags = Array.isArray(event.tags) ? event.tags.filter(Boolean) : []
 
   return (
     <>
@@ -362,8 +364,8 @@ export default async function Page({ params, searchParams }: Props) {
             </div>
           </header>
 
-          {eventImage ? (
-            <div className="overflow-hidden rounded-2xl border">
+          <div className="overflow-hidden rounded-2xl border">
+            {eventImage ? (
               <Media
                 className="w-full"
                 priority
@@ -371,8 +373,17 @@ export default async function Page({ params, searchParams }: Props) {
                 imgClassName="h-auto w-full"
                 size="(max-width: 768px) 100vw, 900px"
               />
-            </div>
-          ) : null}
+            ) : (
+              <EventFallbackImage
+                title={event.title ?? 'Untitled event'}
+                description={longDescription}
+                tags={eventTags}
+                venueName={venueName}
+                neighborhood={event.neighborhood ?? null}
+                className="min-h-[240px] md:min-h-[360px]"
+              />
+            )}
+          </div>
 
           <div className="flex flex-wrap gap-3">
             <ShareButton />
@@ -412,9 +423,9 @@ export default async function Page({ params, searchParams }: Props) {
             </section>
           ) : null}
 
-          {Array.isArray(event.tags) && event.tags.length ? (
+          {eventTags.length ? (
             <div className="flex flex-wrap gap-2">
-              {event.tags.map((t: string) => (
+              {eventTags.map((t: string) => (
                 <span
                   key={t}
                   className="rounded-full bg-black/5 px-3 py-1 text-xs dark:bg-white/10"

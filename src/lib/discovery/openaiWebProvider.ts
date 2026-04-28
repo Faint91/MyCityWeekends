@@ -570,6 +570,7 @@ function buildSectionDiscoveryUserPrompt(input: {
     'Prefer events with clear source pages, date/time, venue, and price information when available.',
     'Prefer official event pages, venue pages, organizer pages, Eventbrite, Showpass, TicketWeb, Ticketmaster, Do604, Vancouver Civic Theatres, and venue calendars.',
     'When available, also return a usable event image URL in imageSourceUrl, preferably the event poster or hero image.',
+    'Use tags for both broad category and visual fallback category when obvious. Example: a hockey event can use tags ["sports", "hockey"]; a DJ event can use ["nightlife", "dj-dance"].',
   ]
 
   if (input.section === 'free') {
@@ -794,7 +795,11 @@ export async function discoverWithOpenAIWeb(input: {
   const developerPrompt = [
     'You are an event discovery analyst for MyCityWeekends.',
     'Find real events for the specified weekend and city.',
-    'Prefer events that fit these categories: music, comedy, food, markets, art, community, nightlife, sports, outdoors.',
+    'Prefer events that fit these broad categories: music, comedy, food, market, art, community, nightlife, sports, outdoors, education.',
+    'For tags, return useful lowercase slug strings.',
+    'Include at least one broad tag when obvious: music, comedy, sports, outdoors, community, art, food, market, education, nightlife.',
+    'Also include one granular visual tag when obvious, such as hockey, basketball, soccer, baseball, football, running, tennis, volleyball, pickleball, live-music, dj-dance, theatre, film, drinks, dance, drag, yoga, cycling, books, anime, esports, festival, family, dogs, holiday, or wellness.',
+    'Use granular visual tags only when supported by the event title, description, venue, or source page. Do not guess.',
     'Return only events that look real, currently scheduled, and useful for a Metro Vancouver weekend recommendation site.',
     'Search across Metro Vancouver, not just the City of Vancouver.',
     'Include relevant events in Vancouver, Burnaby, Richmond, Surrey, North Vancouver, West Vancouver, New Westminster, Coquitlam, Port Coquitlam, Port Moody, Delta, and nearby municipalities when they are reasonable weekend options.',

@@ -1,3 +1,8 @@
+import {
+  durationMs,
+  ingestionDebugError,
+  ingestionDebugLog,
+} from '@/lib/discovery/ingestionDebugLog'
 import { handleCallback } from '@vercel/queue'
 import { getPayloadClient } from '@/lib/payload'
 import { processIngestionQueueMessage } from '@/lib/discovery/processIngestionQueueMessage'
@@ -28,34 +33,136 @@ async function updateIngestionRun(id: number | string, data: Record<string, unkn
   })
 }
 
+function getQueueMessageDebugMeta(message: unknown) {
+  if (!message || typeof message !== 'object') {
+    return {
+      messageShape: typeof message,
+    }
+  }
+
+  const value = message as {
+    type?: unknown
+    version?: unknown
+    job?: Record<string, unknown>
+  }
+
+  const job = value.job && typeof value.job === 'object' ? value.job : {}
+
+  return {
+    messageType: typeof value.type === 'string' ? value.type : undefined,
+    version: value.version,
+    runId: job.runId,
+    ingestionRunId: job.ingestionRunId,
+    section: job.section,
+    source: job.source,
+    city: job.city,
+  }
+}
+
 const queueCallback = handleCallback(async (message) => {
-  const result = await processIngestionQueueMessage(message, {
-    runDiscovery: runDiscoveryIngestion,
-    readIngestionRun,
-    updateIngestionRun,
-  })
+  const startedAt = Date.now()
+  const messageMeta = getQueueMessageDebugMeta(message)
 
-  if (!('payload' in result)) {
-    throw new Error(result.error)
-  }
+  ingestionDebugLog('queue.callback.start', messageMeta)
 
-  const progress = result.ok ? result.parentRunUpdate : result.parentRunFailure
-  const nextMessage = buildNextIngestionQueueMessage(result.payload, progress)
-
-  if (nextMessage) {
-    const publisher = createVercelIngestionQueuePublisher()
-    await publisher.publish([nextMessage])
-  }
-
-  if (!result.ok) {
-    console.error('[ingestion queue] Section job failed but was recorded on parent run', {
-      payload: result.payload,
-      error: result.error,
-      parentRunFailure: result.parentRunFailure,
+  try {
+    const result = await processIngestionQueueMessage(message, {
+      runDiscovery: runDiscoveryIngestion,
+      readIngestionRun,
+      updateIngestionRun,
     })
+
+    ingestionDebugLog('queue.callback.processed', {
+      ...messageMeta,
+      durationMs: durationMs(startedAt),
+      ok: 'payload' in result ? result.ok : false,
+      invalidMessage: !('payload' in result),
+      error: 'payload' in result ? ('error' in result ? result.error : undefined) : result.error,
+    })
+
+    if (!('payload' in result)) {
+      throw new Error(result.error)
+    }
+
+    const progress = result.ok ? result.parentRunUpdate : result.parentRunFailure
+
+    ingestionDebugLog('queue.callback.progress', {
+      ...messageMeta,
+      status: progress?.status,
+      completedSections: progress?.completedSections,
+      failedSections: progress?.failedSections,
+      requestedSections: progress?.requestedSections,
+    })
+
+    const nextMessage = buildNextIngestionQueueMessage(result.payload, progress)
+
+    ingestionDebugLog('queue.callback.next-message', {
+      ...messageMeta,
+      hasNextMessage: Boolean(nextMessage),
+      nextSection: nextMessage?.job.section,
+    })
+
+    if (nextMessage) {
+      const publishStartedAt = Date.now()
+      const publisher = createVercelIngestionQueuePublisher()
+
+      ingestionDebugLog('queue.callback.publish-next.start', {
+        ...messageMeta,
+        nextSection: nextMessage.job.section,
+      })
+
+      const publishResult = await publisher.publish([nextMessage])
+
+      ingestionDebugLog('queue.callback.publish-next.done', {
+        ...messageMeta,
+        nextSection: nextMessage.job.section,
+        durationMs: durationMs(publishStartedAt),
+        attempted: publishResult.attempted,
+        published: publishResult.published,
+        messageIds: publishResult.messages.map((published) => published.messageId),
+      })
+    }
+
+    if (!result.ok) {
+      ingestionDebugError('queue.callback.section-failed-recorded', result.error, {
+        ...messageMeta,
+        parentRunFailure: result.parentRunFailure,
+      })
+    }
+
+    ingestionDebugLog('queue.callback.done', {
+      ...messageMeta,
+      durationMs: durationMs(startedAt),
+    })
+  } catch (error) {
+    ingestionDebugError('queue.callback.unhandled-error', error, {
+      ...messageMeta,
+      durationMs: durationMs(startedAt),
+    })
+
+    throw error
   }
 })
 
 export async function POST(request: Request) {
-  return queueCallback({ request })
+  const startedAt = Date.now()
+
+  ingestionDebugLog('queue.route.received')
+
+  try {
+    const response = await queueCallback({ request })
+
+    ingestionDebugLog('queue.route.response', {
+      durationMs: durationMs(startedAt),
+      status: response.status,
+    })
+
+    return response
+  } catch (error) {
+    ingestionDebugError('queue.route.error', error, {
+      durationMs: durationMs(startedAt),
+    })
+
+    throw error
+  }
 }

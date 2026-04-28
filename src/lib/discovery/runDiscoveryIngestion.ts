@@ -1,3 +1,4 @@
+import { durationMs, ingestionDebugError, ingestionDebugLog } from './ingestionDebugLog'
 import { discoverCandidateEvents } from './discoverCandidateEvents'
 import type { DiscoverCandidateEventsInput, DiscoverCandidateEventsResult } from './types'
 import type { IngestionSection } from './ingestionSections'
@@ -43,8 +44,40 @@ function toDiscoverCandidateEventsInput(
 export async function runDiscoveryIngestion(
   input: RunDiscoveryIngestionInput = {},
 ): Promise<DiscoverCandidateEventsResult> {
+  const startedAt = Date.now()
   const context = buildRunDiscoveryIngestionContext(input)
-  void context
 
-  return discoverCandidateEvents(toDiscoverCandidateEventsInput(input, context))
+  const meta = {
+    trigger: context.trigger,
+    runId: context.runId,
+    sections: context.sections,
+    section: input.section,
+    ingestionRunId: input.ingestionRunId,
+    source: input.source,
+    city: input.city,
+  }
+
+  ingestionDebugLog('runDiscovery.start', meta)
+
+  try {
+    const result = await discoverCandidateEvents(toDiscoverCandidateEventsInput(input, context))
+
+    ingestionDebugLog('runDiscovery.done', {
+      ...meta,
+      durationMs: durationMs(startedAt),
+      found: result.found,
+      inserted: result.inserted,
+      duplicates: result.duplicates,
+      candidateIds: result.candidateIds,
+    })
+
+    return result
+  } catch (error) {
+    ingestionDebugError('runDiscovery.error', error, {
+      ...meta,
+      durationMs: durationMs(startedAt),
+    })
+
+    throw error
+  }
 }

@@ -20,6 +20,7 @@ type Venue = {
 type EventDoc = {
   id: string | number
   title?: string | null
+  description?: string | null
   startAt?: string | null
   endAt?: string | null
   isFree?: boolean | null
@@ -32,6 +33,7 @@ type EventDoc = {
   venue?: string | number | Venue | null
   slug?: string | null
   image?: number | Media | null
+  tags?: string[] | null
 }
 
 type WeekendDropItemDoc = {

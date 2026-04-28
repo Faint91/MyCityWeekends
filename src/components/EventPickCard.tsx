@@ -6,6 +6,7 @@ import type { Media as MediaDoc } from '@/payload-types'
 import { trackEvent } from '@/lib/ga'
 import { SaveToggleButton } from '@/components/SaveToggleButton'
 import { Media } from '@/components/Media'
+import { EventFallbackImage } from '@/components/EventFallbackImage'
 
 type Props = {
   rank?: number | null
@@ -18,6 +19,9 @@ type Props = {
   saveSlug?: string | null
   image?: MediaDoc | null
   backHref?: string | null
+  description?: string | null
+  tags?: string[] | null
+  venueName?: string | null
 }
 
 export function EventPickCard({
@@ -31,45 +35,50 @@ export function EventPickCard({
   saveSlug,
   image,
   backHref,
+  description,
+  tags,
+  venueName,
 }: Props) {
   const eventHref =
     internalHref && backHref
       ? `${internalHref}${internalHref.includes('?') ? '&' : '?'}back=${encodeURIComponent(backHref)}`
       : internalHref
 
+  const imageContent = image ? (
+    <Media
+      htmlElement={null}
+      fill
+      resource={image}
+      imgClassName="object-cover"
+      size="(max-width: 640px) 32vw, 220px"
+    />
+  ) : (
+    <EventFallbackImage
+      title={title}
+      description={description ?? whyWorthIt ?? null}
+      venueName={venueName ?? where ?? null}
+      neighborhood={where ?? null}
+      tags={tags}
+    />
+  )
+
   return (
     <article className="mcw-card-surface rounded-2xl border p-4 text-slate-900 md:p-5">
       <div className="flex items-stretch gap-3">
-        {image ? (
-          eventHref ? (
-            <Link
-              href={eventHref}
-              aria-label={`Open ${title}`}
-              className="relative -ml-1 -my-1 w-[36%] min-w-[132px] shrink-0 self-stretch overflow-hidden rounded-2xl border border-slate-200 bg-white min-h-[168px] sm:w-[35%] sm:min-h-[184px]"
-              onClick={() =>
-                trackEvent('open_event_page', { href: eventHref, source: 'card_image' })
-              }
-            >
-              <Media
-                htmlElement={null}
-                fill
-                resource={image}
-                imgClassName="object-cover"
-                size="(max-width: 640px) 32vw, 220px"
-              />
-            </Link>
-          ) : (
-            <div className="relative -ml-1 -my-1 w-[36%] min-w-[132px] shrink-0 self-stretch overflow-hidden rounded-2xl border border-slate-200 bg-white min-h-[168px] sm:w-[35%] sm:min-h-[184px]">
-              <Media
-                htmlElement={null}
-                fill
-                resource={image}
-                imgClassName="object-cover"
-                size="(max-width: 640px) 32vw, 220px"
-              />
-            </div>
-          )
-        ) : null}
+        {eventHref ? (
+          <Link
+            href={eventHref}
+            aria-label={`Open ${title}`}
+            className="relative -ml-1 -my-1 w-[36%] min-w-[132px] shrink-0 self-stretch overflow-hidden rounded-2xl border border-slate-200 bg-white min-h-[168px] sm:w-[35%] sm:min-h-[184px]"
+            onClick={() => trackEvent('open_event_page', { href: eventHref, source: 'card_image' })}
+          >
+            {imageContent}
+          </Link>
+        ) : (
+          <div className="relative -ml-1 -my-1 w-[36%] min-w-[132px] shrink-0 self-stretch overflow-hidden rounded-2xl border border-slate-200 bg-white min-h-[168px] sm:w-[35%] sm:min-h-[184px]">
+            {imageContent}
+          </div>
+        )}
 
         <div className="min-w-0 flex-1">
           <div className="min-w-0 space-y-1">
