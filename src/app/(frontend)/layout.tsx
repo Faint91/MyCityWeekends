@@ -19,6 +19,9 @@ import { GA4PageView } from '@/components/GA4PageView'
 import './globals.css'
 import { getServerSideURL } from '@/utilities/getURL'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { isEnabled } = await draftMode()
 
