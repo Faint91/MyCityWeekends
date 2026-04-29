@@ -47,7 +47,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               className="md:pb-0"
               style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
             >
-              <main>{children}</main>
+              <main className="lg:mx-auto lg:w-full lg:max-w-[880px]">{children}</main>
             </div>
             <div className="mt-12">
               <Footer />

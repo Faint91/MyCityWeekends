@@ -63,19 +63,20 @@ export function EventPickCard({
   )
 
   return (
-    <article className="mcw-card-surface rounded-2xl border p-4 text-slate-900 md:p-5">
+    <article className="mcw-card-surface rounded-2xl border p-4 text-slate-900 md:p-5 lg:p-4">
       <div className="flex items-stretch gap-3">
         {eventHref ? (
           <Link
             href={eventHref}
             aria-label={`Open ${title}`}
-            className="relative -ml-1 -my-1 w-[36%] min-w-[132px] shrink-0 self-stretch overflow-hidden rounded-2xl border border-slate-200 bg-white min-h-[168px] sm:w-[35%] sm:min-h-[184px]"
+            className="relative -ml-1 -my-1 w-[36%] min-w-[132px] shrink-0 self-stretch overflow-hidden rounded-2xl border border-slate-200 bg-white min-h-[168px] sm:w-[35%] sm:min-h-[184px] lg:w-[32%] lg:min-w-[116px] lg:min-h-[156px]"
             onClick={() => trackEvent('open_event_page', { href: eventHref, source: 'card_image' })}
           >
             {imageContent}
           </Link>
         ) : (
-          <div className="relative -ml-1 -my-1 w-[36%] min-w-[132px] shrink-0 self-stretch overflow-hidden rounded-2xl border border-slate-200 bg-white min-h-[168px] sm:w-[35%] sm:min-h-[184px]">
+          <div className="relative -ml-1 -my-1 w-[36%] min-w-[132px] shrink-0 self-stretch overflow-hidden rounded-2xl border border-slate-200 bg-white min-h-[168px] sm:w-[35%] sm:min-h-[184px] lg:w-[32%] lg:min-w-[116px] lg:min-h-[156px]">
+            {' '}
             {imageContent}
           </div>
         )}
@@ -84,7 +85,7 @@ export function EventPickCard({
           <div className="min-w-0 space-y-1">
             {price ? (
               <div className="flex justify-end">
-                <div className="shrink-0 rounded-full border border-slate-300 bg-white/80 px-3 py-1 text-sm font-medium text-slate-800">
+                <div className="shrink-0 rounded-full border border-slate-300 bg-white/80 px-3 py-1 text-sm font-medium text-slate-800 lg:px-2.5 lg:py-0.5 lg:text-xs">
                   {price}
                 </div>
               </div>
@@ -92,7 +93,7 @@ export function EventPickCard({
 
             <div className="min-w-0">
               {eventHref ? (
-                <h3 className="truncate text-base font-semibold text-slate-950">
+                <h3 className="truncate text-base font-semibold text-slate-950 lg:text-[15px]">
                   <Link
                     className="underline underline-offset-2 decoration-slate-300"
                     href={eventHref}
@@ -101,7 +102,9 @@ export function EventPickCard({
                   </Link>
                 </h3>
               ) : (
-                <h3 className="truncate text-base font-semibold text-slate-950">{title}</h3>
+                <h3 className="truncate text-base font-semibold text-slate-950 lg:text-[15px]">
+                  {title}
+                </h3>
               )}
             </div>
 
@@ -114,7 +117,9 @@ export function EventPickCard({
             ) : null}
 
             {whyWorthIt ? (
-              <p className="text-[15px] leading-6 text-slate-800">{whyWorthIt}</p>
+              <p className="text-[15px] leading-6 text-slate-800 lg:text-sm lg:leading-5">
+                {whyWorthIt}
+              </p>
             ) : null}
           </div>
 

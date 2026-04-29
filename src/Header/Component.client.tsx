@@ -27,13 +27,16 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
   }, [headerTheme, theme])
 
   return (
-    <header className="container relative z-20" {...(theme ? { 'data-theme': theme } : {})}>
+    <header
+      className="container relative z-20 lg:mx-auto lg:max-w-[880px]"
+      {...(theme ? { 'data-theme': theme } : {})}
+    >
       <div className="mcw-header-glow flex flex-col gap-3 pt-5 pb-1 md:gap-4 md:pt-6 md:pb-2">
-        <Link href="/" className="block w-full max-w-[760px]">
+        <Link href="/" className="block w-full max-w-[760px] lg:mx-auto lg:max-w-[560px]">
           <div className="w-full">
             <Logo
               priority={true}
-              sizes="(min-width: 1280px) 760px, (min-width: 768px) 62vw, 92vw"
+              sizes="(min-width: 1024px) 560px, (min-width: 768px) 62vw, 92vw"
             />
           </div>
         </Link>

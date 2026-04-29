@@ -65,15 +65,14 @@ export function EventFallbackImage({
         />
       ) : null}
 
-      <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/5 to-transparent" />
-
-      <div className="relative mt-auto flex w-full items-end justify-between gap-3 p-3">
-        <div className="rounded-full border border-white/35 bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-white shadow-sm backdrop-blur">
-          {definition.label}
-        </div>
-
-        {imageFailed ? <div className="text-3xl drop-shadow-sm">{definition.emoji}</div> : null}
-      </div>
+      {imageFailed ? (
+        <>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/5 to-transparent" />
+          <div className="relative mt-auto flex w-full justify-end p-3">
+            <div className="text-3xl drop-shadow-sm">{definition.emoji}</div>
+          </div>
+        </>
+      ) : null}
     </div>
   )
 }

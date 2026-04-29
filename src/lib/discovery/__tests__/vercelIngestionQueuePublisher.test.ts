@@ -55,10 +55,12 @@ describe('vercelIngestionQueuePublisher', () => {
 
     expect(sendMock).toHaveBeenNthCalledWith(1, INGESTION_QUEUE_TOPIC, messages[0], {
       idempotencyKey: 'run_123:free',
+      region: 'iad1',
     })
 
     expect(sendMock).toHaveBeenNthCalledWith(2, INGESTION_QUEUE_TOPIC, messages[1], {
       idempotencyKey: 'run_123:under30',
+      region: 'iad1',
     })
 
     expect(result).toEqual({
@@ -100,6 +102,7 @@ describe('vercelIngestionQueuePublisher', () => {
 
     expect(sendMock).toHaveBeenCalledWith('custom-ingestion-topic', message, {
       idempotencyKey: 'run_456:top3',
+      region: 'iad1',
     })
 
     expect(result).toEqual({

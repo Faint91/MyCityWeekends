@@ -25,6 +25,7 @@ export function createVercelIngestionQueuePublisher(
       for (const message of messages) {
         const { messageId } = await send(topic, message, {
           idempotencyKey: `${message.job.runId}:${message.job.section}`,
+          region: process.env.VERCEL_REGION ?? 'iad1',
         })
 
         publishedMessages.push({

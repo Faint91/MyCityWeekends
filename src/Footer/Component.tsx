@@ -13,7 +13,7 @@ export async function Footer() {
 
   return (
     <footer className="mcw-nav-surface mt-auto border-t border-white/10 text-white">
-      <div className="container flex flex-col gap-6 py-8 md:flex-row md:items-start md:justify-between">
+      <div className="mx-auto flex w-full max-w-[760px] flex-col gap-6 px-4 py-8 md:flex-row md:items-start md:justify-between md:px-6 lg:px-0">
         <div className="w-full min-w-0 md:w-auto">
           <Link href="/" className="block w-full">
             <div className="flex flex-col items-start min-w-0">

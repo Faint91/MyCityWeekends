@@ -40,7 +40,7 @@ export default async function WeekendPage() {
   if (!drop) {
     return (
       <div className="pt-6 md:pt-8">
-        <div className="container space-y-6">
+        <div className="container space-y-6 lg:max-w-[760px]">
           <h1 className="text-2xl font-semibold">This weekend in Vancouver</h1>
           <p className="text-black/70 dark:text-white/70">No weekend drop published yet.</p>
         </div>
@@ -52,7 +52,7 @@ export default async function WeekendPage() {
 
   return (
     <div className="pt-6 md:pt-8">
-      <div className="container space-y-8">
+      <div className="container space-y-8 lg:max-w-[760px]">
         <header className="space-y-2">
           <h1 className="text-2xl font-semibold">This weekend in Vancouver</h1>
           <p className="text-black/70 dark:text-white/70">
