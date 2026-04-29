@@ -62,9 +62,10 @@ export default buildConfig({
       connectionString: process.env.DATABASE_URL || '',
     },
     push:
-      process.env.NODE_ENV !== 'production' &&
-      !process.env.CI &&
-      process.env.PAYLOAD_DISABLE_SCHEMA_PUSH !== '1',
+      process.env.PAYLOAD_FORCE_SCHEMA_PUSH === '1' ||
+      (process.env.NODE_ENV !== 'production' &&
+        !process.env.CI &&
+        process.env.PAYLOAD_DISABLE_SCHEMA_PUSH !== '1'),
   }),
   collections: [
     Media,
