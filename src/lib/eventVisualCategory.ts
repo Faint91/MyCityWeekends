@@ -227,31 +227,56 @@ export function getEventVisualCategory(input: EventVisualCategoryInput): {
   key: EventVisualCategory
   definition: EventVisualCategoryDefinition
 } {
-  for (const tag of input.tags ?? []) {
-    const tagCategory = normalizeEventVisualCategoryKey(tag)
-    if (tagCategory && tagCategory !== 'default') {
-      return {
-        key: tagCategory,
-        definition: EVENT_VISUAL_CATEGORIES[tagCategory],
-      }
+  const broadCategories = new Set<EventVisualCategory>([
+    'live-music',
+    'comedy',
+    'sports',
+    'outdoors',
+    'community',
+    'art',
+    'food',
+    'market',
+    'education',
+    'nightlife',
+    'default',
+  ])
+
+  const normalizedTagCategories = (input.tags ?? [])
+    .map((tag) => normalizeEventVisualCategoryKey(tag))
+    .filter((tag): tag is EventVisualCategory => Boolean(tag))
+
+  const granularTagCategory = normalizedTagCategories.find(
+    (tagCategory) => !broadCategories.has(tagCategory),
+  )
+
+  if (granularTagCategory) {
+    return {
+      key: granularTagCategory,
+      definition: EVENT_VISUAL_CATEGORIES[granularTagCategory],
     }
   }
 
   const text = buildSearchText(input)
 
-  if (!text) {
-    return {
-      key: 'default',
-      definition: EVENT_VISUAL_CATEGORIES.default,
+  if (text) {
+    for (const rule of EVENT_VISUAL_CATEGORY_RULES) {
+      if (hasAny(text, rule.keywords)) {
+        return {
+          key: rule.key,
+          definition: EVENT_VISUAL_CATEGORIES[rule.key],
+        }
+      }
     }
   }
 
-  for (const rule of EVENT_VISUAL_CATEGORY_RULES) {
-    if (hasAny(text, rule.keywords)) {
-      return {
-        key: rule.key,
-        definition: EVENT_VISUAL_CATEGORIES[rule.key],
-      }
+  const broadTagCategory = normalizedTagCategories.find(
+    (tagCategory) => broadCategories.has(tagCategory) && tagCategory !== 'default',
+  )
+
+  if (broadTagCategory) {
+    return {
+      key: broadTagCategory,
+      definition: EVENT_VISUAL_CATEGORIES[broadTagCategory],
     }
   }
 

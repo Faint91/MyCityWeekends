@@ -8,9 +8,13 @@ import { promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import {
-  extractBestImageUrlFromPage,
+  extractRankedImageCandidatesFromPage,
   normalizeRemoteImageUrl as normalizeSharedRemoteImageUrl,
 } from './imageSourceUrls'
+import {
+  selectBestEventImageWithOpenAI,
+  type EventImageSelectionCandidate,
+} from './selectBestEventImageWithOpenAI'
 
 type ID = number
 
@@ -782,34 +786,111 @@ async function extractImageUrlFromPageForPublish(
   }
 }
 
+function dedupeImageSelectionCandidates(
+  candidates: EventImageSelectionCandidate[],
+): EventImageSelectionCandidate[] {
+  const seen = new Set<string>()
+  const unique: EventImageSelectionCandidate[] = []
+
+  for (const candidate of candidates) {
+    const imageUrl = normalizeSharedRemoteImageUrl(candidate.url)
+    if (!imageUrl || seen.has(imageUrl)) continue
+
+    seen.add(imageUrl)
+    unique.push({
+      ...candidate,
+      url: imageUrl,
+    })
+  }
+
+  return unique
+}
+
 async function importBestCandidateImageToMedia(input: {
   payload: Payload
   imageUrl: string | null | undefined
   sourceUrl: string | null | undefined
   ticketUrl: string | null | undefined
   alt: string
+  title?: string | null
+  description?: string | null
 }): Promise<number | null> {
+  const imageSearchOptions = {
+    eventTitle: input.title ?? input.alt,
+    eventDescription: input.description ?? null,
+  }
+
   const directImageUrl = normalizeSharedRemoteImageUrl(input.imageUrl)
-  const sourcePageImageUrl = normalizeSharedRemoteImageUrl(
-    await extractBestImageUrlFromPage(input.sourceUrl),
-  )
-  const ticketPageImageUrl = normalizeSharedRemoteImageUrl(
-    await extractBestImageUrlFromPage(input.ticketUrl),
+
+  const sourcePageCandidates = await extractRankedImageCandidatesFromPage(
+    input.sourceUrl,
+    imageSearchOptions,
   )
 
-  const candidates = [directImageUrl, sourcePageImageUrl, ticketPageImageUrl].filter(
+  const shouldCheckTicketPage =
+    cleanString(input.ticketUrl) && normalizeUrl(input.ticketUrl) !== normalizeUrl(input.sourceUrl)
+
+  const ticketPageCandidates = shouldCheckTicketPage
+    ? await extractRankedImageCandidatesFromPage(input.ticketUrl, imageSearchOptions)
+    : []
+
+  const imageCandidates = dedupeImageSelectionCandidates([
+    ...(directImageUrl
+      ? [
+          {
+            url: directImageUrl,
+            source: 'candidate.imageSourceUrl',
+            score: 1_000,
+            context: 'Image URL returned directly by discovery provider.',
+          },
+        ]
+      : []),
+    ...sourcePageCandidates.map((candidate) => ({
+      url: candidate.url,
+      source: `sourceUrl.${candidate.source}`,
+      score: candidate.score,
+      context: candidate.context,
+    })),
+    ...ticketPageCandidates.map((candidate) => ({
+      url: candidate.url,
+      source: `ticketUrl.${candidate.source}`,
+      score: candidate.score,
+      context: candidate.context,
+    })),
+  ])
+
+  const openAISelection = await selectBestEventImageWithOpenAI({
+    title: input.title ?? input.alt,
+    description: input.description ?? null,
+    sourceUrl: cleanString(input.sourceUrl) ?? cleanString(input.ticketUrl) ?? null,
+    candidates: imageCandidates.slice(0, 6),
+  })
+
+  const selectedUrl = openAISelection.selectedUrl
+    ? normalizeSharedRemoteImageUrl(openAISelection.selectedUrl)
+    : null
+
+  const orderedUrls = [selectedUrl, ...imageCandidates.map((candidate) => candidate.url)].filter(
     (value): value is string => Boolean(value),
   )
 
-  const uniqueUrls = Array.from(new Set(candidates))
+  const uniqueUrls = Array.from(new Set(orderedUrls))
 
   console.info('[candidate-events] Candidate image import sources resolved', {
     directImageUrl,
     sourceUrl: cleanString(input.sourceUrl),
-    sourcePageImageUrl,
+    sourcePageCandidateCount: sourcePageCandidates.length,
     ticketUrl: cleanString(input.ticketUrl),
-    ticketPageImageUrl,
+    ticketPageCandidateCount: ticketPageCandidates.length,
     totalUniqueUrls: uniqueUrls.length,
+    openAISelectedUrl: selectedUrl,
+    openAISelectionReason: openAISelection.reason,
+    openAISelectionModel: openAISelection.model,
+    topImageCandidates: imageCandidates.slice(0, 6).map((candidate) => ({
+      url: candidate.url,
+      source: candidate.source,
+      score: candidate.score,
+    })),
     rejectedDirectImageUrl:
       cleanString(input.imageUrl) && !directImageUrl ? cleanString(input.imageUrl) : null,
   })
@@ -817,6 +898,7 @@ async function importBestCandidateImageToMedia(input: {
   for (const imageUrl of uniqueUrls) {
     console.info('[candidate-events] Trying candidate image URL', {
       imageUrl,
+      selectedByOpenAI: imageUrl === selectedUrl,
     })
 
     const importedImageId = await importRemoteCandidateImageToMedia({
@@ -828,6 +910,7 @@ async function importBestCandidateImageToMedia(input: {
     if (importedImageId) {
       console.info('[candidate-events] Candidate image import succeeded', {
         imageUrl,
+        selectedByOpenAI: imageUrl === selectedUrl,
         mediaId: importedImageId,
       })
       return importedImageId
@@ -835,6 +918,7 @@ async function importBestCandidateImageToMedia(input: {
 
     console.warn('[candidate-events] Candidate image import attempt failed', {
       imageUrl,
+      selectedByOpenAI: imageUrl === selectedUrl,
     })
   }
 
@@ -842,6 +926,7 @@ async function importBestCandidateImageToMedia(input: {
     directImageUrl,
     sourceUrl: cleanString(input.sourceUrl),
     ticketUrl: cleanString(input.ticketUrl),
+    openAISelectionReason: openAISelection.reason,
   })
 
   return null
@@ -1000,6 +1085,8 @@ export async function publishCandidateEvent(
         sourceUrl: candidate.sourceUrl,
         ticketUrl: candidate.ticketUrl,
         alt: cleanString(candidate.title) ?? 'Event image',
+        title: cleanString(candidate.title) ?? null,
+        description: cleanString(candidate.description) ?? null,
       })
     } catch (error) {
       imageImportFailed = true
