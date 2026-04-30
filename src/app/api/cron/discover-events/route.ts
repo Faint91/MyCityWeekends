@@ -37,7 +37,10 @@ export async function GET(req: NextRequest) {
     )
   }
 
-  const response = await fetch(`${origin}/api/admin/discover-events/kickoff`, {
+  const kickoffUrl = new URL('/api/admin/discover-events/kickoff', origin)
+  kickoffUrl.searchParams.set('secret', adminSecret)
+
+  const response = await fetch(kickoffUrl.toString(), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
