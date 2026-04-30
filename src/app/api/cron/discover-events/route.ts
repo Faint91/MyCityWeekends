@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+import { ensureDiscoveryWeekendDrop } from '@/lib/discovery/ensureDiscoveryWeekendDrop'
+import { dryRunKickoffDiscoveryIngestion } from '@/lib/discovery/dryRunKickoffDiscoveryIngestion'
+import { createVercelIngestionQueuePublisher } from '@/lib/discovery/vercelIngestionQueuePublisher'
+import { getPayloadClient } from '@/lib/payload'
+
 export const maxDuration = 60
 
 function isAuthorized(req: NextRequest): boolean {
@@ -24,43 +29,52 @@ export async function GET(req: NextRequest) {
     )
   }
 
-  const origin = req.nextUrl.origin
-  const adminSecret = process.env.ADMIN_DISCOVERY_SECRET
+  try {
+    const payload = await getPayloadClient()
 
-  if (!adminSecret) {
+    await ensureDiscoveryWeekendDrop(payload, {
+      city: 'Vancouver, BC',
+    })
+
+    const result = await dryRunKickoffDiscoveryIngestion(
+      {
+        source: 'openai_web',
+        city: 'Vancouver, BC',
+        trigger: 'cron',
+      },
+      {
+        createIngestionRun: async (args) => {
+          return payload.create({
+            collection: 'ingestion-runs',
+            overrideAccess: true,
+            data: args,
+          })
+        },
+        publisher: createVercelIngestionQueuePublisher(),
+        publishMode: 'first',
+        previewOnly: false,
+        promptVersion: 'cron-kickoff-v1',
+      },
+    )
+
+    return NextResponse.json(
+      {
+        ok: true,
+        mode: 'cron_discover_events',
+        result,
+      },
+      { status: 200 },
+    )
+  } catch (error) {
+    console.error('[cron-discover-events] Failed to queue ingestion', error)
+
     return NextResponse.json(
       {
         ok: false,
-        error: 'Missing ADMIN_DISCOVERY_SECRET',
+        mode: 'cron_discover_events',
+        error: error instanceof Error ? error.message : 'Unknown cron discovery error.',
       },
       { status: 500 },
     )
   }
-
-  const kickoffUrl = new URL('/api/admin/discover-events/kickoff', origin)
-  kickoffUrl.searchParams.set('secret', adminSecret)
-
-  const response = await fetch(kickoffUrl.toString(), {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-admin-discovery-secret': adminSecret,
-    },
-    body: JSON.stringify({
-      city: 'Vancouver, BC',
-      source: 'openai_web',
-    }),
-  })
-
-  const data = await response.json().catch(() => null)
-
-  return NextResponse.json(
-    {
-      ok: response.ok,
-      mode: 'cron_discover_events',
-      kickoffStatus: response.status,
-      kickoff: data,
-    },
-    { status: response.ok ? 200 : 500 },
-  )
 }
