@@ -43,11 +43,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           />
           <div
             data-theme="dark"
-            className="mcw-site-shell min-h-screen pb-[calc(4rem+env(safe-area-inset-bottom))]"
+            className="mcw-site-shell flex min-h-screen flex-col pb-[calc(4rem+env(safe-area-inset-bottom))]"
           >
             <Header />
             <div
-              className="md:pb-0"
+              className="flex-1 md:pb-0"
               style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
             >
               <main className="lg:mx-auto lg:w-full lg:max-w-[880px]">{children}</main>
