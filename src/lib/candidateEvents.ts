@@ -1,3 +1,4 @@
+import { cleanPublishedEventTitle } from './publishedEventTitle'
 import type { Payload } from 'payload'
 import { getPayloadClient } from './payload'
 import { areLikelyDuplicateEvents, cleanString, normalizeUrl } from './discovery/dedupe'
@@ -266,7 +267,7 @@ function buildDraftEventData(candidate: CandidateEventDoc, venueId?: number): Ev
 }
 
 function buildPublishedEventData(candidate: CandidateEventDoc, venueId?: number): EventCreateData {
-  const title = cleanString(candidate.title)
+  const title = cleanPublishedEventTitle(candidate.title)
   const startAt = cleanString(candidate.startAt)
 
   if (!title) {
@@ -435,7 +436,7 @@ async function findMatchingExistingEvent(
   const match = (found.docs as EventDoc[]).find((event) =>
     areLikelyDuplicateEvents(
       {
-        title: candidate.title,
+        title: cleanPublishedEventTitle(candidate.title) ?? candidate.title,
         startAt: candidate.startAt,
         venueName: candidate.venueName,
         venueAddress: candidate.venueAddress,

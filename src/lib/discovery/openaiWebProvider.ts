@@ -549,6 +549,37 @@ function hasWeakDiscoveryCoverage(candidates: DiscoveredCandidate[]): boolean {
   return candidates.length < 6 || summary.freeCount === 0 || summary.under30Count < 1
 }
 
+function getSectionVarietyGuidance(section: IngestionSection): string[] {
+  if (section === 'free') {
+    return [
+      'For the Free section, avoid returning only library, museum, or community-centre listings.',
+      'Try to include a mix such as outdoor/community, arts/culture, family-friendly, market/festival, sports/wellness, free-with-RSVP, or neighbourhood events when available.',
+      'Do not include more than one event from the same free-event calendar/source unless it is clearly the best option.',
+      'If you already found one strong free event from a venue/calendar, search for a different source and vibe before adding another similar one.',
+    ]
+  }
+
+  if (section === 'under30') {
+    return [
+      'For the Under $30 section, avoid returning only concerts or only comedy shows.',
+      'Try to include a mix such as live music, comedy, theatre/film, food/drinks, markets, workshops, arts/culture, nightlife, or festivals when available.',
+      'Prefer events with clear starting prices under CAD 30, but keep the section varied.',
+      'If several candidates are the same type of paid event, keep the best one and replace weaker repeats with a different kind of experience.',
+    ]
+  }
+
+  if (section === 'top3') {
+    return [
+      'For Top 3, choose three clearly different kinds of experiences.',
+      'The Top 3 should not all be concerts, all markets, all sports, all festivals, or all from the same neighbourhood.',
+      'A good Top 3 usually has different vibes, for example: one high-energy event, one cultural/community event, and one easy social/outdoor/food option.',
+      'Do not duplicate the same event concept across Top 3 unless one option is obviously exceptional.',
+    ]
+  }
+
+  return ['Return a varied mix of event types, neighbourhoods, venues, and vibes.']
+}
+
 function buildSectionDiscoveryUserPrompt(input: {
   city: string
   weekendStart: string
@@ -571,6 +602,16 @@ function buildSectionDiscoveryUserPrompt(input: {
     'Prefer official event pages, venue pages, organizer pages, Eventbrite, Showpass, TicketWeb, Ticketmaster, Do604, Vancouver Civic Theatres, and venue calendars.',
     'When available, also return a usable event image URL in imageSourceUrl, preferably the event poster or hero image.',
     'Use tags for both broad category and visual fallback category when obvious. Example: a hockey event can use tags ["sports", "hockey"]; a DJ event can use ["nightlife", "dj-dance"].',
+    '',
+    'Section variety requirements:',
+    ...getSectionVarietyGuidance(input.section),
+    '',
+    'Before returning the final JSON, check your candidate list:',
+    '- Are there repeated venues? If yes, keep only the best one unless there are no alternatives.',
+    '- Are there repeated organizers, festivals, recurring series, or source calendars? If yes, keep only the strongest one unless there are no alternatives.',
+    '- Are there repeated categories/vibes? If yes, replace weaker repeats with different event types.',
+    '- Are there repeated neighbourhoods? If yes, diversify when quality is similar.',
+    '- Are any events generic calendar pages instead of specific weekend events? Replace them if possible.',
   ]
 
   if (input.section === 'free') {
@@ -843,6 +884,15 @@ export async function discoverWithOpenAIWeb(input: {
     'Use under30 only for non-free events whose lowest known price is 30 CAD or less.',
     'If price is unknown, leave it null.',
     'If a field is unclear, return null rather than guessing.',
+    'IMPORTANT VARIETY RULES:',
+    '- Return a varied portfolio of events, not multiple versions of the same type of event.',
+    '- Avoid selecting more than one event from the same venue, organizer, franchise, festival page, or recurring series unless there are not enough valid options.',
+    '- Avoid selecting more than one event with the same primary vibe/category when other good options exist.',
+    '- Prefer variety across categories such as live music, comedy, theatre, film, outdoors, community, sports, food, market, art, family, wellness, education, nightlife, and festivals.',
+    '- Prefer variety across neighborhoods and nearby cities when quality is similar.',
+    '- Avoid filling a section with only concerts, only markets, only library events, only museum events, only runs/races, or only classes.',
+    '- If several valid events are similar, choose the strongest one and then search for a different kind of event.',
+    '- Prioritize specific one-off weekend events over generic recurring listings, broad calendars, or always-available activities.',
   ].join(' ')
 
   if (input.section) {
