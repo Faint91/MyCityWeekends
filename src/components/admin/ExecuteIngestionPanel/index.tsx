@@ -2,13 +2,22 @@
 
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
-import { executeIngestionAction, type ExecuteIngestionQueuedResult } from './actions'
+import {
+  cleanupExpiredWeekendDropAction,
+  executeIngestionAction,
+  type CleanupExpiredWeekendDropActionResult,
+  type ExecuteIngestionQueuedResult,
+} from './actions'
 
 export default function ExecuteIngestionPanel() {
   const [isPending, startTransition] = useTransition()
   const [source, setSource] = useState<'mock' | 'openai_web'>('openai_web')
   const [result, setResult] = useState<ExecuteIngestionQueuedResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [cleanupResult, setCleanupResult] = useState<CleanupExpiredWeekendDropActionResult | null>(
+    null,
+  )
+  const [cleanupError, setCleanupError] = useState<string | null>(null)
 
   return (
     <div
@@ -152,6 +161,87 @@ export default function ExecuteIngestionPanel() {
             </div>
           </div>
         ) : null}
+        <div
+          style={{
+            marginTop: 8,
+            paddingTop: 16,
+            borderTop: '1px solid var(--theme-elevation-150)',
+          }}
+        >
+          <h3 style={{ margin: 0 }}>Weekend Drop Cleanup</h3>
+          <p style={{ margin: '6px 0 12px 0' }}>
+            Delete the latest expired Weekend Drop, its Weekend Drop Items, and the Events connected
+            to those items. Use this to test the Monday cleanup flow.
+          </p>
+
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => {
+              const confirmed = window.confirm(
+                'Delete the latest expired Weekend Drop, its Weekend Drop Items, and connected Events? This cannot be undone.',
+              )
+
+              if (!confirmed) return
+
+              startTransition(async () => {
+                setCleanupError(null)
+                setCleanupResult(null)
+
+                const response = await cleanupExpiredWeekendDropAction()
+
+                if (!response.ok) {
+                  setCleanupError(response.error)
+                  return
+                }
+
+                setCleanupResult(response.result)
+              })
+            }}
+          >
+            {isPending ? 'Working...' : 'Delete latest expired Weekend Drop'}
+          </button>
+
+          {cleanupError ? (
+            <div
+              style={{
+                marginTop: 12,
+                padding: 12,
+                borderRadius: 6,
+                border: '1px solid #b42318',
+              }}
+            >
+              <strong>Cleanup failed:</strong> {cleanupError}
+            </div>
+          ) : null}
+
+          {cleanupResult ? (
+            <div
+              style={{
+                marginTop: 12,
+                padding: 12,
+                borderRadius: 6,
+                border: '1px solid var(--theme-elevation-200)',
+              }}
+            >
+              <strong>{cleanupResult.skipped ? 'Cleanup skipped.' : 'Cleanup completed.'}</strong>
+
+              {cleanupResult.reason ? <p>{cleanupResult.reason}</p> : null}
+
+              <div style={{ marginTop: 8 }}>
+                <div>Weekend Drop: {cleanupResult.weekendDropTitle ?? 'None'}</div>
+                <div>Weekend Drop ID: {cleanupResult.weekendDropId ?? 'None'}</div>
+                <div>Deleted Weekend Drop Items: {cleanupResult.deletedWeekendDropItems}</div>
+                <div>Deleted Events: {cleanupResult.deletedEvents}</div>
+                <div>Cleared Candidate Events: {cleanupResult.clearedCandidateEvents}</div>
+                <div>
+                  Skipped Events Still Referenced:{' '}
+                  {cleanupResult.skippedEventsStillReferenced.length}
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   )

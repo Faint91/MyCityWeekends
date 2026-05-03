@@ -5,6 +5,7 @@ import { getPayloadClient } from '@/lib/payload'
 import { dryRunKickoffDiscoveryIngestion } from '@/lib/discovery/dryRunKickoffDiscoveryIngestion'
 import { noopIngestionQueuePublisher } from '@/lib/discovery/ingestionQueuePublisher'
 import { createVercelIngestionQueuePublisher } from '@/lib/discovery/vercelIngestionQueuePublisher'
+import { cleanupLatestExpiredWeekendDrop } from '@/lib/cleanupExpiredWeekendDrop'
 
 function getAdminIngestionQueuePublisher() {
   if (process.env.VERCEL === '1') {
@@ -57,6 +58,30 @@ export async function executeIngestionAction(input?: {
     return {
       ok: false as const,
       error: error instanceof Error ? error.message : 'Unknown ingestion queue kickoff error.',
+    }
+  }
+}
+
+export type CleanupExpiredWeekendDropActionResult = Awaited<
+  ReturnType<typeof cleanupLatestExpiredWeekendDrop>
+>
+
+export async function cleanupExpiredWeekendDropAction() {
+  try {
+    const payload = await getPayloadClient()
+
+    const result = await cleanupLatestExpiredWeekendDrop(payload, {
+      city: 'Vancouver, BC',
+    })
+
+    return {
+      ok: true as const,
+      result,
+    }
+  } catch (error) {
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : 'Unknown Weekend Drop cleanup error.',
     }
   }
 }

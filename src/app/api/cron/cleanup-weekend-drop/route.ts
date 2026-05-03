@@ -45,8 +45,13 @@ function shouldRunCleanup(req: NextRequest, now: Date): boolean {
   }
 
   const local = getVancouverLocalParts(now)
-
   return local.weekday === 'Monday' && local.hour === 3
+}
+
+function getRecentExpiredDropMinimumIso(now: Date): string {
+  // Monday 3 AM cleanup should delete the weekend that ended around Monday 00:00 local.
+  // This prevents duplicate cron delivery from deleting older historical drops.
+  return new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
 }
 
 export async function GET(req: NextRequest) {
@@ -79,9 +84,13 @@ export async function GET(req: NextRequest) {
 
   try {
     const payload = await getPayloadClient()
+
+    const isForced = req.nextUrl.searchParams.get('force') === '1'
+
     const result = await cleanupLatestExpiredWeekendDrop(payload, {
       city: 'Vancouver, BC',
       now,
+      minimumWeekendEndIso: isForced ? null : getRecentExpiredDropMinimumIso(now),
     })
 
     console.info('[cron-cleanup-weekend-drop] Cleanup finished', result)
