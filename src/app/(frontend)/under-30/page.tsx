@@ -40,7 +40,9 @@ export default async function Under30Page() {
       <div className="pt-6 md:pt-8">
         <div className="container space-y-6">
           <h1 className="text-2xl font-semibold">Under $30</h1>
-          <p className="text-black/70 dark:text-white/70">No weekend drop published yet.</p>
+          <h2 className="text-black/70 dark:text-white/70">
+            New events will be coming next Tuesday night!
+          </h2>
         </div>
       </div>
     )
@@ -57,9 +59,9 @@ export default async function Under30Page() {
         </header>
 
         {items.length === 0 ? (
-          <p className="text-black/70 dark:text-white/70">
-            No under-$30 picks added yet for this weekend.
-          </p>
+          <h2 className="text-black/70 dark:text-white/70">
+            New events will be coming next Tuesday night!
+          </h2>
         ) : (
           <div className="space-y-3">
             {items.map((item) => {

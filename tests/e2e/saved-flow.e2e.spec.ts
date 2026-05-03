@@ -9,7 +9,7 @@ test('Saved flow works end to end', async ({ page }) => {
     await page.goto('/saved')
     await expect(page).toHaveURL(/\/saved\/?$/)
     await expect(page.getByRole('heading', { level: 1, name: /^Saved$/ })).toBeVisible()
-    await expect(page.getByText(/no saved events yet/i)).toBeVisible()
+    await expect(page.getByText(/no saved events/i)).toBeVisible()
     return
   }
 
@@ -37,5 +37,5 @@ test('Saved flow works end to end', async ({ page }) => {
   await expect(savedToggle).toHaveAttribute('aria-label', /unsave event/i)
 
   await savedToggle.click()
-  await expect(page.getByText(/no saved events yet/i)).toBeVisible()
+  await expect(page.getByText(/no saved events/i)).toBeVisible()
 })

@@ -40,7 +40,9 @@ export default async function FreePage() {
       <div className="pt-6 md:pt-8">
         <div className="container space-y-6">
           <h1 className="text-2xl font-semibold">Free this weekend</h1>
-          <p className="text-black/70 dark:text-white/70">No weekend drop published yet.</p>
+          <h2 className="text-black/70 dark:text-white/70">
+            New events will be coming next Tuesday night!
+          </h2>
         </div>
       </div>
     )
@@ -57,9 +59,9 @@ export default async function FreePage() {
         </header>
 
         {items.length === 0 ? (
-          <p className="text-black/70 dark:text-white/70">
-            No free picks added yet for this weekend.
-          </p>
+          <h2 className="text-black/70 dark:text-white/70">
+            New events will be coming next Tuesday night!
+          </h2>
         ) : (
           <div className="space-y-3">
             {items.map((item) => {

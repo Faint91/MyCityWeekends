@@ -6,10 +6,12 @@ test('Event page core actions render and work', async ({ page }) => {
   const eventLinks = page.locator('a[href^="/event/"]')
 
   if ((await eventLinks.count()) === 0) {
-    const empty1 = page.getByText(/no weekend drop published yet/i)
-    const empty2 = page.getByText(/no top 3 items yet/i)
+    await expect(
+      page.getByRole('heading', {
+        name: /new events will be coming next tuesday night!/i,
+      }),
+    ).toBeVisible()
 
-    await expect(empty1.or(empty2)).toBeVisible()
     return
   }
 

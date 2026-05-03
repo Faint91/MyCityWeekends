@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { getSavedSlugs, subscribeToSavedSlugs } from '@/lib/savedEvents'
+import { getSavedSlugs, replaceSavedSlugs, subscribeToSavedSlugs } from '@/lib/savedEvents'
 import { EventPickCard } from '@/components/EventPickCard'
 import { trackEvent } from '@/lib/ga'
 import type { Media } from '@/payload-types'
@@ -82,6 +82,17 @@ async function fetchEventsBySlugs(slugs: string[]): Promise<EventDoc[]> {
   return Array.isArray(json?.docs) ? json.docs : []
 }
 
+function SavedEmptyState() {
+  return (
+    <div className="space-y-3">
+      <p className="text-black/70 dark:text-white/70">No saved events</p>
+      <Link className="underline" href="/">
+        Browse this weekend
+      </Link>
+    </div>
+  )
+}
+
 export default function SavedPageClient() {
   const [_savedSlugs, setSavedSlugs] = useState<string[]>([])
   const [visibleSlugs, setVisibleSlugs] = useState<string[]>([])
@@ -113,6 +124,19 @@ export default function SavedPageClient() {
       const docs = await fetchEventsBySlugs(initialSlugs)
 
       if (!active || requestId !== requestIdRef.current) return
+
+      const returnedSlugs = new Set(
+        docs.map((event) => event.slug).filter((slug): slug is string => Boolean(slug)),
+      )
+      const validSlugs = initialSlugs.filter((slug) => returnedSlugs.has(slug))
+
+      if (validSlugs.length !== initialSlugs.length) {
+        replaceSavedSlugs(validSlugs)
+      }
+
+      visibleSlugsRef.current = validSlugs
+      setSavedSlugs(validSlugs)
+      setVisibleSlugs(validSlugs)
       setEvents(docs)
     }
 
@@ -174,6 +198,18 @@ export default function SavedPageClient() {
 
       if (!active || requestId !== requestIdRef.current) return
 
+      const returnedAddedSlugs = new Set(
+        addedDocs.map((event) => event.slug).filter((slug): slug is string => Boolean(slug)),
+      )
+      const validNextSlugs = nextSlugs.filter(
+        (slug) => !addedSlugs.includes(slug) || returnedAddedSlugs.has(slug),
+      )
+
+      if (validNextSlugs.length !== nextSlugs.length) {
+        replaceSavedSlugs(validNextSlugs)
+        return
+      }
+
       setEvents((prev) => {
         const merged = new Map<string, EventDoc>()
 
@@ -201,14 +237,7 @@ export default function SavedPageClient() {
   }, [])
 
   if (visibleSlugs.length === 0) {
-    return (
-      <div className="space-y-3">
-        <p className="text-black/70 dark:text-white/70">No saved events yet.</p>
-        <Link className="underline" href="/">
-          Browse this weekend
-        </Link>
-      </div>
-    )
+    return <SavedEmptyState />
   }
 
   if (events === null) {
@@ -217,6 +246,10 @@ export default function SavedPageClient() {
 
   const bySlug = new Map(events.map((e) => [e.slug, e]))
   const ordered = visibleSlugs.map((s) => bySlug.get(s)).filter(Boolean) as EventDoc[]
+
+  if (ordered.length === 0) {
+    return <SavedEmptyState />
+  }
 
   return (
     <div className="space-y-3">

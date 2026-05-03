@@ -45,6 +45,11 @@ export function removeSlug(slug: string) {
   write(current)
 }
 
+export function replaceSavedSlugs(slugs: string[]) {
+  const unique = Array.from(new Set(slugs.filter(Boolean)))
+  write(unique)
+}
+
 export function toggleSaved(slug: string): boolean {
   const current = read()
   if (current.includes(slug)) {
