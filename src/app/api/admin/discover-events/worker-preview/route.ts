@@ -4,6 +4,7 @@ import { isIngestionSection } from '@/lib/discovery/ingestionSections'
 import { runDiscoveryIngestion } from '@/lib/discovery/runDiscoveryIngestion'
 import { getDiscoverySectionStrategy } from '@/lib/discovery/discoverySectionStrategy'
 import { processIngestionSectionJob } from '@/lib/discovery/processIngestionSectionJob'
+import { publishDiscoveryWeekendDrop } from '@/lib/discovery/ensureDiscoveryWeekendDrop'
 
 type RequestBody = {
   runId?: string
@@ -94,6 +95,30 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  let publishedWeekendDrop: { id: string | number; title: string | null } | null = null
+
+  if (
+    processed.parentRunUpdate?.status === 'succeeded' ||
+    processed.parentRunUpdate?.status === 'partial'
+  ) {
+    try {
+      const payloadClient = await getPayloadClient()
+
+      const drop = await publishDiscoveryWeekendDrop(payloadClient, {
+        city: payload.city,
+        weekendStart: payload.weekendStart,
+        weekendEnd: payload.weekendEnd,
+      })
+
+      publishedWeekendDrop = {
+        id: drop.id,
+        title: drop.title ?? null,
+      }
+    } catch (error) {
+      console.error('[worker-preview] Failed to publish Weekend Drop after final section', error)
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     mode: 'worker_preview_only',
@@ -101,5 +126,6 @@ export async function POST(req: NextRequest) {
     payload,
     result: processed.execution,
     parentRunUpdate: processed.parentRunUpdate,
+    publishedWeekendDrop,
   })
 }

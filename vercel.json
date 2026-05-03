@@ -14,6 +14,14 @@
     {
       "path": "/api/cron/discover-events",
       "schedule": "0 3 * * 3"
+    },
+    {
+      "path": "/api/cron/cleanup-weekend-drop",
+      "schedule": "0 10 * * 1"
+    },
+    {
+      "path": "/api/cron/cleanup-weekend-drop",
+      "schedule": "0 11 * * 1"
     }
   ]
 }

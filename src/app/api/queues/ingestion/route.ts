@@ -9,6 +9,7 @@ import { processIngestionQueueMessage } from '@/lib/discovery/processIngestionQu
 import { runDiscoveryIngestion } from '@/lib/discovery/runDiscoveryIngestion'
 import { buildNextIngestionQueueMessage } from '@/lib/discovery/buildNextIngestionQueueMessage'
 import { createVercelIngestionQueuePublisher } from '@/lib/discovery/vercelIngestionQueuePublisher'
+import { publishDiscoveryWeekendDrop } from '@/lib/discovery/ensureDiscoveryWeekendDrop'
 
 export const maxDuration = 300
 
@@ -120,6 +121,33 @@ const queueCallback = handleCallback(async (message) => {
         attempted: publishResult.attempted,
         published: publishResult.published,
         messageIds: publishResult.messages.map((published) => published.messageId),
+      })
+    }
+
+    if (!nextMessage && (progress?.status === 'succeeded' || progress?.status === 'partial')) {
+      const publishDropStartedAt = Date.now()
+
+      ingestionDebugLog('queue.callback.publish-weekend-drop.start', {
+        ...messageMeta,
+        status: progress.status,
+        weekendStart: result.payload.weekendStart,
+        weekendEnd: result.payload.weekendEnd,
+      })
+
+      const payloadClient = await getPayloadClient()
+
+      const publishedDrop = await publishDiscoveryWeekendDrop(payloadClient, {
+        city: result.payload.city,
+        weekendStart: result.payload.weekendStart,
+        weekendEnd: result.payload.weekendEnd,
+      })
+
+      ingestionDebugLog('queue.callback.publish-weekend-drop.done', {
+        ...messageMeta,
+        status: progress.status,
+        durationMs: durationMs(publishDropStartedAt),
+        weekendDropId: publishedDrop.id,
+        weekendDropTitle: publishedDrop.title,
       })
     }
 

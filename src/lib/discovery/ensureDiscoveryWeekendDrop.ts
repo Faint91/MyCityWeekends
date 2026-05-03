@@ -201,7 +201,7 @@ export async function ensureDiscoveryWeekendDrop(
   const weekendStart = cleanString(input.weekendStart) ?? weekendWindow.weekendStart
   const weekendEnd = cleanString(input.weekendEnd) ?? weekendWindow.weekendEnd
 
-  const existing = await payload.find({
+  const existingDraft = await payload.find({
     collection: 'weekend-drops',
     draft: true,
     overrideAccess: true,
@@ -211,9 +211,24 @@ export async function ensureDiscoveryWeekendDrop(
     },
   })
 
-  const existingDrop = existing.docs[0]
-  if (existingDrop) {
-    return existingDrop
+  const existingDraftDrop = existingDraft.docs[0]
+  if (existingDraftDrop) {
+    return existingDraftDrop
+  }
+
+  const existingPublished = await payload.find({
+    collection: 'weekend-drops',
+    draft: false,
+    overrideAccess: true,
+    limit: 1,
+    where: {
+      and: [{ city: { equals: city } }, { weekendStart: { equals: weekendStart } }],
+    },
+  })
+
+  const existingPublishedDrop = existingPublished.docs[0]
+  if (existingPublishedDrop) {
+    return existingPublishedDrop
   }
 
   return payload.create({
@@ -225,6 +240,79 @@ export async function ensureDiscoveryWeekendDrop(
       city,
       weekendStart,
       weekendEnd: toWeekendDropEndInclusive(weekendEnd),
+    },
+  })
+}
+
+export async function publishDiscoveryWeekendDrop(
+  payload: Payload,
+  input: {
+    city?: string
+    weekendStart?: string
+    weekendEnd?: string
+  } = {},
+) {
+  const weekendWindow = getNextDiscoveryWeekendWindow()
+
+  const city = cleanString(input.city) ?? 'Vancouver, BC'
+  const weekendStart = cleanString(input.weekendStart) ?? weekendWindow.weekendStart
+  const weekendEnd = cleanString(input.weekendEnd) ?? weekendWindow.weekendEnd
+
+  const existingDraft = await payload.find({
+    collection: 'weekend-drops',
+    draft: true,
+    overrideAccess: true,
+    limit: 1,
+    where: {
+      and: [{ city: { equals: city } }, { weekendStart: { equals: weekendStart } }],
+    },
+  })
+
+  const existingPublished =
+    existingDraft.docs[0] ??
+    (
+      await payload.find({
+        collection: 'weekend-drops',
+        draft: false,
+        overrideAccess: true,
+        limit: 1,
+        where: {
+          and: [{ city: { equals: city } }, { weekendStart: { equals: weekendStart } }],
+        },
+      })
+    ).docs[0]
+
+  if (existingPublished) {
+    const status =
+      existingPublished && typeof existingPublished === 'object' && '_status' in existingPublished
+        ? existingPublished._status
+        : undefined
+
+    if (status === 'published') {
+      return existingPublished
+    }
+
+    return payload.update({
+      collection: 'weekend-drops',
+      id: existingPublished.id,
+      draft: false,
+      overrideAccess: true,
+      data: {
+        _status: 'published',
+      },
+    })
+  }
+
+  return payload.create({
+    collection: 'weekend-drops',
+    draft: false,
+    overrideAccess: true,
+    data: {
+      title: formatWeekendDropTitleFromStart(weekendStart),
+      city,
+      weekendStart,
+      weekendEnd: toWeekendDropEndInclusive(weekendEnd),
+      _status: 'published',
     },
   })
 }
