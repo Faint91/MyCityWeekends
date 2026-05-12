@@ -42,9 +42,14 @@ export default async function WeekendPage() {
       <div className="pt-6 md:pt-8">
         <div className="container space-y-6 lg:max-w-[760px]">
           <h1 className="text-2xl font-semibold">This weekend in Vancouver</h1>
-          <h2 className="text-black/70 dark:text-white/70">
-            New events will be coming next Tuesday night!
-          </h2>
+          <div className="space-y-2">
+            <h2 className="text-black/70 dark:text-white/70">
+              New events will be coming next Tuesday night!
+            </h2>
+            <p className="text-sm text-black/60 dark:text-white/60">
+              Check back for the Top 3 curated weekend picks in Vancouver.
+            </p>
+          </div>
         </div>
       </div>
     )
@@ -64,9 +69,14 @@ export default async function WeekendPage() {
 
         <section aria-label="Top 3 picks" className="space-y-3">
           {top3.length === 0 ? (
-            <h2 className="text-black/70 dark:text-white/70">
-              New events will be coming next Tuesday night!
-            </h2>
+            <div className="space-y-2">
+              <h2 className="text-black/70 dark:text-white/70">
+                New events will be coming next Tuesday night!
+              </h2>
+              <p className="text-sm text-black/60 dark:text-white/60">
+                Check back for the Top 3 curated weekend picks in Vancouver.
+              </p>
+            </div>
           ) : (
             <div className="space-y-3">
               {top3.map((item) => {

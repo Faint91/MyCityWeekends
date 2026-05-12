@@ -40,9 +40,14 @@ export default async function Under30Page() {
       <div className="pt-6 md:pt-8">
         <div className="container space-y-6">
           <h1 className="text-2xl font-semibold">Under $30</h1>
-          <h2 className="text-black/70 dark:text-white/70">
-            New events will be coming next Tuesday night!
-          </h2>
+          <div className="space-y-2">
+            <h2 className="text-black/70 dark:text-white/70">
+              New events will be coming next Tuesday night!
+            </h2>
+            <p className="text-sm text-black/60 dark:text-white/60">
+              This page will show budget-friendly Vancouver events under $30.
+            </p>
+          </div>
         </div>
       </div>
     )
@@ -59,9 +64,14 @@ export default async function Under30Page() {
         </header>
 
         {items.length === 0 ? (
-          <h2 className="text-black/70 dark:text-white/70">
-            New events will be coming next Tuesday night!
-          </h2>
+          <div className="space-y-2">
+            <h2 className="text-black/70 dark:text-white/70">
+              New events will be coming next Tuesday night!
+            </h2>
+            <p className="text-sm text-black/60 dark:text-white/60">
+              This page will show budget-friendly Vancouver events under $30.
+            </p>
+          </div>
         ) : (
           <div className="space-y-3">
             {items.map((item) => {

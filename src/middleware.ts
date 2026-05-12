@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 const CANONICAL_HOST = 'mycityweekends.com'
 
-const REDIRECT_HOSTS = new Set(['my-city-weekends.vercel.app'])
+const REDIRECT_HOSTS = new Set(['www.mycityweekends.com', 'my-city-weekends.vercel.app'])
 
 export function middleware(request: NextRequest) {
   const host = request.headers.get('host')?.toLowerCase()
